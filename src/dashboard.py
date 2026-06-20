@@ -491,7 +491,7 @@ with st.sidebar:
     st.markdown("## Navigation")
     page = st.radio(
         "Go to:",
-        ["Command Center", "Lead Explorer", "Auto-Replies Tracker", "ML Analytics Playground", "Workflow Settings"],
+        ["Command Center", "Lead Explorer", "Auto-Replies Tracker", "Interactive Pipeline Graph", "Workflow Settings"],
         label_visibility="collapsed"
     )
     
@@ -869,52 +869,6 @@ elif page == "Auto-Replies Tracker":
         # Load replies df
         reply_df = pd.DataFrame(reply_log)
         
-        # Summary charts
-        c1, c2 = st.columns([1, 1])
-        with c1:
-            if "detected_intent" in reply_df.columns:
-                intent_counts = reply_df["detected_intent"].value_counts().reset_index()
-                intent_counts.columns = ["Intent Category", "Emails Sent"]
-                
-                if HAS_PLOTLY:
-                    fig = px.bar(intent_counts, x="Intent Category", y="Emails Sent", 
-                                 title="Auto-Replies sent by Intent Category",
-                                 color="Intent Category", color_discrete_sequence=px.colors.qualitative.Antique)
-                    fig.update_layout(
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        font_color='#9898a6',
-                        title_font_color='#ffffff',
-                        showlegend=False,
-                        xaxis=dict(showgrid=False, linecolor='rgba(255,255,255,0.05)'),
-                        yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)', linecolor='rgba(255,255,255,0.05)'),
-                        margin=dict(l=40, r=40, t=40, b=40)
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-                else:
-                    st.bar_chart(reply_df["detected_intent"].value_counts())
-            else:
-                st.info("No intents mapped.")
-                
-        with c2:
-            if "channel" in reply_df.columns:
-                ch_counts = reply_df["channel"].value_counts().reset_index()
-                ch_counts.columns = ["Channel", "Volume"]
-                if HAS_PLOTLY:
-                    fig = px.pie(ch_counts, names="Channel", values="Volume", 
-                                 title="Replies Distribution by Channel Source",
-                                 color_discrete_sequence=px.colors.qualitative.Safe)
-                    fig.update_layout(
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        font_color='#9898a6',
-                        title_font_color='#ffffff',
-                        margin=dict(l=40, r=40, t=40, b=40)
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-                else:
-                    st.bar_chart(reply_df["channel"].value_counts())
-                    
         # Table of sent replies
         st.markdown("---")
         st.subheader("Sent Reply Logs")
@@ -966,125 +920,63 @@ elif page == "Auto-Replies Tracker":
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════
-# PAGE: ML Analytics Playground
+# PAGE: Interactive Pipeline Graph
 # ══════════════════════════════════════════════════════════
-elif page == "ML Analytics Playground":
+elif page == "Interactive Pipeline Graph":
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-    st.subheader("🧠 Machine Learning Model Performance Metrics")
+    st.subheader("🌊 Lead Flow Pipeline Graph")
     
-    # Accuracy details parsing
-    acc, f1, prec, rec = 0.82, 0.59, 0.68, 0.52
-    if os.path.exists(REPORT):
-        try:
-            with open(REPORT) as f:
-                for line in f.read().split("\n"):
-                    parts = line.split()
-                    if len(parts) >= 5 and parts[0] == "accuracy":
-                        acc = float(parts[1])
-                    if len(parts) >= 5 and parts[0] == "Missed":
-                        prec, rec, f1 = float(parts[1]), float(parts[2]), float(parts[3])
-        except Exception:
-            pass
-            
-    # Model KPIs
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        st.metric("Ensemble Accuracy", f"{acc:.1%}")
-    with c2:
-        st.metric("F1 Score (Missed Leads)", f"{f1:.3f}")
-    with c3:
-        st.metric("Precision (Missed Leads)", f"{prec:.3f}")
-    with c4:
-        st.metric("Recall (Missed Leads)", f"{rec:.3f}")
-        
-    # Model Comparison Plotly Chart
-    st.markdown("---")
-    st.subheader("🏆 Model ROC-AUC Score Comparisons")
-    if os.path.exists(MODEL_CMP):
-        try:
-            with open(MODEL_CMP) as f:
-                mc_data = json.load(f)
-                
-            if mc_data.get("models"):
-                rows = [{"Model": k, "Test AUC": v["auc"]} for k, v in mc_data["models"].items()]
-                compare_df = pd.DataFrame(rows).sort_values("Test AUC", ascending=True)
-                
-                if HAS_PLOTLY:
-                    fig = px.bar(compare_df, y="Model", x="Test AUC", orientation="h",
-                                 title="ROC-AUC scores for 8 Models (Higher is better)",
-                                 color="Test AUC", color_continuous_scale="Viridis")
-                    fig.update_layout(
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        font_color='#9898a6',
-                        title_font_color='#ffffff',
-                        xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)', linecolor='rgba(255,255,255,0.05)'),
-                        yaxis=dict(showgrid=False, linecolor='rgba(255,255,255,0.05)'),
-                        margin=dict(l=40, r=40, t=40, b=40),
-                        coloraxis_showscale=False
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-                else:
-                    st.dataframe(compare_df)
-        except Exception as e:
-            st.error(f"Error loading model comparison data: {e}")
-            
-    # Optuna tuning hyperparams
-    st.markdown("---")
-    st.subheader("⚙️ Optuna Hyperparameter Optimization Details")
+    scored = load_scored_leads()
+    reply_log = load_json_log(REPLY_LOG)
     
-    if os.path.exists(XGB_TUNING):
-        try:
-            with open(XGB_TUNING) as f:
-                tuning_res = json.load(f)
-                
-            tc1, tc2 = st.columns([1, 1])
-            with tc1:
-                st.markdown(f"**Optimization Target:** XGBoost Classifier")
-                st.markdown(f"**Dataset Used:** `{tuning_res.get('dataset', 'leads_merged.csv')}`")
-                st.markdown(f"**Samples Ingested:** `{tuning_res.get('n_samples', '13,740')}`")
-                st.markdown(f"**Cross-Validation Trials Completed:** `{tuning_res.get('n_trials', '100')}`")
-                st.markdown(f"**Best Cross-Validation AUC:** `{tuning_res.get('best_auc', '—')}`")
-                st.markdown(f"**Tuned Test AUC Score:** `{tuning_res.get('test_auc', '—')}`")
-            with tc2:
-                st.markdown("**Best Hyperparameters Found:**")
-                st.json(tuning_res.get("best_params", {}))
-        except Exception:
-            st.info("Tuning parameters logs not found or unreadable.")
+    if len(scored) == 0:
+        st.info("No leads available to visualize.")
     else:
-        st.info("Optuna tuning parameters not generated.")
-
-    # Deep learning charts fallback/display
-    st.markdown("---")
-    st.subheader("📈 Deep Learning (PyTorch) & Diagnostic Charts")
-    
-    chart_tabs = st.tabs(["Confusion Matrix", "Feature Importance", "Neural Network Loss & AUC Curves", "ROC Curve"])
-    
-    with chart_tabs[0]:
-        if os.path.exists(CM_IMG) and HAS_PIL:
-            st.image(Image.open(CM_IMG), use_container_width=True, caption="Model Confusion Matrix")
-        else:
-            st.info("No confusion matrix chart saved.")
+        st.markdown("This interactive graph shows how leads flow through your sales pipeline, making it easy to understand without any ML jargon.")
+        total = len(scored)
+        missed = int(scored["predicted_missed"].sum()) if "predicted_missed" in scored.columns else 0
+        responded = total - missed
+        
+        missed_df = scored[scored["predicted_missed"] == 1] if "predicted_missed" in scored.columns else pd.DataFrame()
+        high_intent_missed = int(missed_df["high_intent_flag"].sum()) if "high_intent_flag" in missed_df.columns else 0
+        low_intent_missed = missed - high_intent_missed
+        
+        auto_replied = len(reply_log) if isinstance(reply_log, list) else 0
+        # Just simple math for visual flow
+        awaiting = high_intent_missed - auto_replied if high_intent_missed >= auto_replied else 0
+        
+        if HAS_PLOTLY:
+            fig = go.Figure(data=[go.Sankey(
+                node = dict(
+                  pad = 15,
+                  thickness = 20,
+                  line = dict(color = "rgba(255,255,255,0.1)", width = 0.5),
+                  label = ["Total Leads", "Responded (Safe)", "Missed Leads", "High Intent (Missed)", "Low Intent (Missed)", "Auto-Replied", "Awaiting Human"],
+                  color = ["#60a5fa", "#34d399", "#f87171", "#e8a838", "#5a5a6e", "#34d399", "#f87171"]
+                ),
+                link = dict(
+                  source = [0, 0, 2, 2, 3, 3], 
+                  target = [1, 2, 3, 4, 5, 6],
+                  value =  [max(responded, 1), max(missed, 1), max(high_intent_missed, 1), max(low_intent_missed, 1), max(auto_replied, 1), max(awaiting, 1)], # Use max(val, 1) to ensure links render
+                  color = ["rgba(52, 211, 153, 0.4)", "rgba(248, 113, 113, 0.4)", "rgba(232, 168, 56, 0.4)", "rgba(90, 90, 110, 0.4)", "rgba(52, 211, 153, 0.4)", "rgba(248, 113, 113, 0.4)"]
+                )
+            )])
             
-    with chart_tabs[1]:
-        if os.path.exists(FI_IMG) and HAS_PIL:
-            st.image(Image.open(FI_IMG), use_container_width=True, caption="Model Random Forest Feature Importances")
+            fig.update_layout(
+                title_text="Customer Journey & Sales Bottlenecks", 
+                font_size=14, 
+                paper_bgcolor='rgba(0,0,0,0)', 
+                plot_bgcolor='rgba(0,0,0,0)', 
+                font_color='#f0f0f5',
+                height=600
+            )
+            st.plotly_chart(fig, use_container_width=True)
         else:
-            st.info("No feature importance chart saved.")
+            st.error("Plotly is required to render the interactive graph.")
             
-    with chart_tabs[2]:
-        if os.path.exists(DL_HIST) and HAS_PIL:
-            st.image(Image.open(DL_HIST), use_container_width=True, caption="PyTorch DL Classification Epochs Loss History")
-        else:
-            st.info("No deep learning loss history charts saved.")
-            
-    with chart_tabs[3]:
-        if os.path.exists(DL_ROC) and HAS_PIL:
-            st.image(Image.open(DL_ROC), use_container_width=True, caption="Receiver Operating Characteristic Curve")
-        else:
-            st.info("No ROC curves saved.")
-
     st.markdown("</div>", unsafe_allow_html=True)
+
+
 
 # ══════════════════════════════════════════════════════════
 # PAGE: Workflow Settings
