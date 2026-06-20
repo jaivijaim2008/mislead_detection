@@ -1,0 +1,29 @@
+{
+  "models": {
+    "LogisticRegression": {
+      "auc": 0.9132
+    },
+    "NaiveBayes": {
+      "auc": 0.8604
+    },
+    "DecisionTree": {
+      "auc": 0.9627
+    },
+    "RandomForest": {
+      "auc": 0.9725
+    },
+    "XGBoost": {
+      "auc": 0.9794
+    },
+    "Ensemble(RF+XGB+LR)": {
+      "auc": 0.972
+    },
+    "DeepLearning(PyTorch)": {
+      "auc": 0.9613
+    },
+    "GrandEnsemble(ML+DL)": {
+      "auc": 0.9709
+    }
+  },
+  "best": "XGBoost"
+}

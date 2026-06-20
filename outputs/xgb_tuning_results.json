@@ -1,0 +1,19 @@
+{
+  "best_auc": 0.9771,
+  "test_auc": 0.9794,
+  "best_params": {
+    "n_estimators": 329,
+    "max_depth": 8,
+    "learning_rate": 0.02203864153683177,
+    "subsample": 0.9854855342982658,
+    "colsample_bytree": 0.7189934910610802,
+    "min_child_weight": 1,
+    "gamma": 3.2092169338038583,
+    "reg_alpha": 1.782094205805701e-08,
+    "reg_lambda": 4.4899707721683623e-05,
+    "scale_pos_weight": 1.7929567984035473
+  },
+  "n_trials": 100,
+  "dataset": "leads_merged.csv",
+  "n_samples": 13740
+}

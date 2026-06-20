@@ -1,0 +1,17 @@
+============================================================
+  MISSED-LEAD DETECTOR - EDA REPORT
+============================================================
+
+Generated from: C:\Users\HP VICTUS\Desktop\ML\missed_lead_detector\data\leads.csv
+Total Records: 500
+Features: 11
+
+Target Distribution:
+  Missed: 127 (25.4%)
+  Replied: 373 (74.6%)
+
+Channels: WhatsApp, Email, Phone Inquiry, Website Chat
+Hour Range: 8-20
+Avg Response Gap: 32.7h
+High Intent Leads: 302
+Avg Previous Contacts: 1.6

@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Credentials & secrets
+.env
+*.env
+secrets.toml
+
+# Logs
+logs/*.log
+
+# Large model files (too big for git)
+models/*.pt
+models/*.pkl
+models/*.h5
+
+# Kaggle datasets (re-downloadable)
+data/kaggle/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Streamlit
+.streamlit/secrets.toml
