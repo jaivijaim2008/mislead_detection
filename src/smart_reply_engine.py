@@ -8,10 +8,13 @@ The client should NOT be able to tell this is automated.
 
 import os, re, random
 from datetime import datetime
-
-SENDER_NAME = os.getenv("SENDER_NAME", "Sales Team")
-COMPANY_NAME = os.getenv("COMPANY_NAME", "Our Company")
-TEAM_PHONE = os.getenv("TEAM_PHONE", "+91-XXXXXXXXXX")
+from config import (
+    COMPANY_NAME, SENDER_NAME, TEAM_PHONE, TEAM_EMAIL, WEBSITE_URL,
+    COURSES, BATCH_SCHEDULES, NEXT_BATCH_DATE, SEATS_REMAINING,
+    PLACEMENT_RATE, COMPANY_PARTNERS, PLACEMENT_HIGHLIGHTS,
+    DISCOUNT_INFO, SCHOLARSHIP_INFO, EMI_INFO,
+    EMAIL_SIGNATURE, COMPLAINT_RESOLUTION_TIME,
+)
 
 # ── Intent Detection ─────────────────────────────────────────────────────
 
@@ -338,21 +341,40 @@ def generate_reply(customer_name: str, customer_email: str,
     else:
         customer_name_val = customer_name.split()[0] if customer_name else "there"
 
+    # Build dynamic values from config
+    batch_info = f"Weekday: {BATCH_SCHEDULES.get('weekday', 'TBD')}, Weekend: {BATCH_SCHEDULES.get('weekend', 'TBD')}"
+
     body = template["body"].format(
         customer_name=customer_name_val,
         sender_name=SENDER_NAME,
         team_phone=TEAM_PHONE,
+        team_email=TEAM_EMAIL,
+        website=WEBSITE_URL,
         subject=subject,
         company=COMPANY_NAME,
         # Pricing placeholders
-        emi_start=random.choice(["2,999", "3,499", "4,999"]),
-        short_price=random.choice(["15,000", "18,000", "22,000"]),
-        short_price_high=random.choice(["25,000", "30,000", "35,000"]),
-        full_price=random.choice(["45,000", "55,000", "65,000"]),
-        full_price_high=random.choice(["85,000", "95,000", "1,20,000"]),
+        emi_start=random.choice([c["emi_start"] for c in COURSES]) if COURSES else "2,999",
+        short_price=COURSES[-1]["price"] if COURSES else "15,000",
+        short_price_high=COURSES[-2]["price"] if len(COURSES) >= 2 else "25,000",
+        full_price=COURSES[0]["price"] if COURSES else "45,000",
+        full_price_high=COURSES[1]["price"] if len(COURSES) >= 2 else "85,000",
+        # Course info
+        course_list="\n".join([f"  - {c['name']}: {c['duration']} ({c['highlight']})" for c in COURSES]),
         # Availability placeholders
-        next_start_date="Monday, July 7th",
-        seats_left=random.choice(["8", "12", "15", "20"]),
+        next_start_date=NEXT_BATCH_DATE,
+        seats_left=SEATS_REMAINING,
+        batch_schedule=batch_info,
+        # Placement info
+        placement_rate=PLACEMENT_RATE,
+        partner_count=COMPANY_PARTNERS,
+        placement_highlights="\n".join([f"  - {h}" for h in PLACEMENT_HIGHLIGHTS]),
+        # Discount/scholarship
+        discount_info=DISCOUNT_INFO,
+        scholarship_info=SCHOLARSHIP_INFO,
+        emi_info=EMI_INFO,
+        # Complaint
+        resolution_time=COMPLAINT_RESOLUTION_TIME,
+        signature=EMAIL_SIGNATURE,
     )
 
     # Remove auto-generated footer mentions
