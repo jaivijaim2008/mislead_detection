@@ -153,31 +153,40 @@ if page == "📊 Live Dashboard":
     status_class = "status-live" if live_configured else "status-demo"
     st.markdown(f'Pipeline Status: <span class="status-badge {status_class}">{status_text}</span>', unsafe_allow_html=True)
 
-    # Metrics from scored data (REAL inbox data)
+    # Detect if data has Gmail-specific columns or is training-scored data
+    has_gmail_cols = len(scored_df) > 0 and "_customer_name" in scored_df.columns
+    is_training_data = len(scored_df) > 0 and "channel" in scored_df.columns and not has_gmail_cols
+
+    if is_training_data:
+        st.info("📊 Showing training-scored data (run the live pipeline with Gmail to see inbox data).")
+
+    # Metrics from scored data
     col1, col2, col3, col4 = st.columns(4)
 
     if len(scored_df) > 0:
         total_inbox = len(scored_df)
-        high_intent = int(scored_df["high_intent_flag"].sum())
-        avg_gap = scored_df["response_gap_hrs"].mean()
-        predicted_missed = int(scored_df["predicted_missed"].sum())
+        high_intent = int(scored_df["high_intent_flag"].sum()) if "high_intent_flag" in scored_df.columns else 0
+        predicted_missed = int(scored_df["predicted_missed"].sum()) if "predicted_missed" in scored_df.columns else 0
+
+        metric_label_1 = "Total Leads" if is_training_data else "Inbox Emails Fetched"
+        metric_label_2 = "High-Intent Leads" if is_training_data else "High-Intent Inquiries"
 
         with col1:
             st.markdown(f"""
             <div class="metric-card inbox-card">
-                <div class="metric-value">{total_inbox}</div>
-                <div class="metric-label">Inbox Emails Fetched</div>
+                <div class="metric-value">{total_inbox:,}</div>
+                <div class="metric-label">{metric_label_1}</div>
             </div>""", unsafe_allow_html=True)
         with col2:
             st.markdown(f"""
             <div class="metric-card auc-card">
-                <div class="metric-value">{high_intent}</div>
-                <div class="metric-label">High-Intent Inquiries</div>
+                <div class="metric-value">{high_intent:,}</div>
+                <div class="metric-label">{metric_label_2}</div>
             </div>""", unsafe_allow_html=True)
         with col3:
             st.markdown(f"""
             <div class="metric-card missed-card">
-                <div class="metric-value">{predicted_missed}</div>
+                <div class="metric-value">{predicted_missed:,}</div>
                 <div class="metric-label">ML-Detected Missed</div>
             </div>""", unsafe_allow_html=True)
         with col4:
@@ -191,13 +200,13 @@ if page == "📊 Live Dashboard":
             st.markdown(f"""
             <div class="metric-card inbox-card">
                 <div class="metric-value">0</div>
-                <div class="metric-label">Inbox Emails Fetched</div>
+                <div class="metric-label">Total Leads</div>
             </div>""", unsafe_allow_html=True)
         with col2:
             st.markdown(f"""
             <div class="metric-card auc-card">
                 <div class="metric-value">0</div>
-                <div class="metric-label">High-Intent Inquiries</div>
+                <div class="metric-label">High-Intent Leads</div>
             </div>""", unsafe_allow_html=True)
         with col3:
             st.markdown(f"""
@@ -214,27 +223,47 @@ if page == "📊 Live Dashboard":
 
     st.markdown("")
 
-    # Recent inbox emails table
+    # Recent scored emails table
     if len(scored_df) > 0:
-        st.markdown('<div class="section-header">📥 Recent Customer Emails from Inbox</div>', unsafe_allow_html=True)
-
-        display_cols = ["lead_id", "_customer_name", "_customer_email", "_subject",
-                        "response_gap_hrs", "high_intent_flag", "missed_probability", "predicted_missed"]
-        display_df = scored_df[display_cols].copy()
-        display_df.columns = ["Lead ID", "Customer", "Email", "Subject",
-                              "Gap (hrs)", "High Intent", "Missed Prob.", "Predicted Missed"]
-        display_df["Missed Prob."] = display_df["Missed Prob."].apply(lambda x: f"{x:.1%}")
-        display_df["High Intent"] = display_df["High Intent"].map({1: "✅ YES", 0: "❌ NO"})
-        display_df["Predicted Missed"] = display_df["Predicted Missed"].map({1: "🔴 MISSED", 0: "🟢 OK"})
-
-        st.dataframe(display_df, use_container_width=True, height=300)
-        st.caption(f"Showing {len(display_df)} inbox emails scored by the ML model")
+        if has_gmail_cols:
+            st.markdown('<div class="section-header">📥 Recent Customer Emails from Inbox</div>', unsafe_allow_html=True)
+            display_cols = ["lead_id", "_customer_name", "_customer_email", "_subject",
+                            "response_gap_hrs", "high_intent_flag", "missed_probability", "predicted_missed"]
+            display_df = scored_df[display_cols].copy()
+            display_df.columns = ["Lead ID", "Customer", "Email", "Subject",
+                                  "Gap (hrs)", "High Intent", "Missed Prob.", "Predicted Missed"]
+            display_df["Missed Prob."] = display_df["Missed Prob."].apply(lambda x: f"{x:.1%}")
+            display_df["High Intent"] = display_df["High Intent"].map({1: "✅ YES", 0: "❌ NO"})
+            display_df["Predicted Missed"] = display_df["Predicted Missed"].map({1: "🔴 MISSED", 0: "🟢 OK"})
+            st.dataframe(display_df, use_container_width=True, height=300)
+            st.caption(f"Showing {len(display_df)} inbox emails scored by the ML model")
+        else:
+            st.markdown('<div class="section-header">📊 Scored Leads</div>', unsafe_allow_html=True)
+            available_cols = ["lead_id"]
+            for c in ["channel", "message_text", "high_intent_flag", "prev_contacts",
+                       "response_gap_hrs", "missed_probability", "predicted_missed"]:
+                if c in scored_df.columns:
+                    available_cols.append(c)
+            display_df = scored_df[available_cols].copy()
+            col_rename = {"lead_id": "Lead ID", "channel": "Channel", "message_text": "Message",
+                          "high_intent_flag": "High Intent", "prev_contacts": "Prior Contacts",
+                          "response_gap_hrs": "Gap (hrs)", "missed_probability": "Missed Prob.",
+                          "predicted_missed": "Predicted Missed"}
+            display_df.columns = [col_rename.get(c, c) for c in display_df.columns]
+            if "Missed Prob." in display_df.columns:
+                display_df["Missed Prob."] = display_df["Missed Prob."].apply(lambda x: f"{x:.1%}")
+            if "High Intent" in display_df.columns:
+                display_df["High Intent"] = display_df["High Intent"].map({1: "✅ YES", 0: "❌ NO"})
+            if "Predicted Missed" in display_df.columns:
+                display_df["Predicted Missed"] = display_df["Predicted Missed"].map({1: "🔴 MISSED", 0: "🟢 OK"})
+            st.dataframe(display_df, use_container_width=True, height=300)
+            st.caption(f"Showing {len(display_df)} scored leads from training data")
     else:
-        st.info("📭 No inbox emails fetched yet. Run `python src/orchestrator.py --live` to fetch from Gmail.")
+        st.info("📭 No scored data available. Run the pipeline or `python src/train_model.py` first.")
 
     # Gap distribution chart
-    if len(scored_df) > 0:
-        st.markdown('<div class="section-header">⏱️ Response Gaps (Real Inbox Data)</div>', unsafe_allow_html=True)
+    if len(scored_df) > 0 and "response_gap_hrs" in scored_df.columns:
+        st.markdown('<div class="section-header">⏱️ Response Gap Distribution</div>', unsafe_allow_html=True)
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
@@ -244,7 +273,7 @@ if page == "📊 Live Dashboard":
         ax.axvline(gaps.mean(), color="#e74c3c", linestyle="--", linewidth=2, label=f"Mean: {gaps.mean():.1f}h")
         ax.set_xlabel("Response Gap (Hours)")
         ax.set_ylabel("Count")
-        ax.set_title("Response Gap Distribution — Scored Inbox Emails")
+        ax.set_title("Response Gap Distribution — Scored Leads")
         ax.legend()
         plt.tight_layout()
         st.pyplot(fig)
@@ -302,44 +331,75 @@ if page == "📊 Live Dashboard":
 # PAGE: Inbox Leads
 # ══════════════════════════════════════════════════════════
 elif page == "📋 Inbox Leads":
-    st.markdown('<div class="section-header">📋 Scored Inbox Leads (Live Data)</div>', unsafe_allow_html=True)
+    has_gmail = len(scored_df) > 0 and "_customer_name" in scored_df.columns
+    st.markdown('<div class="section-header">📋 Scored Inbox Leads</div>', unsafe_allow_html=True)
 
     if len(scored_df) > 0:
         col1, col2, col3 = st.columns(3)
         with col1:
             filter_status = st.selectbox("Filter by Status", ["All", "Missed Only", "High Intent Only"])
         with col2:
-            customers = sorted(scored_df["_customer_name"].unique().tolist())
-            filter_customer = st.selectbox("Filter by Customer", ["All"] + customers)
+            if has_gmail:
+                customers = sorted(scored_df["_customer_name"].unique().tolist())
+                filter_customer = st.selectbox("Filter by Customer", ["All"] + customers)
+            else:
+                channels = sorted(scored_df["channel"].unique().tolist()) if "channel" in scored_df.columns else []
+                filter_customer = st.selectbox("Filter by Channel", ["All"] + channels) if channels else "All"
         with col3:
-            sort_by = st.selectbox("Sort by", ["missed_probability", "response_gap_hrs", "lead_id"])
+            sort_options = ["missed_probability", "response_gap_hrs", "lead_id"]
+            sort_by = st.selectbox("Sort by", [s for s in sort_options if s in scored_df.columns])
 
         display_df = scored_df.copy()
-        if filter_status == "Missed Only":
+        if filter_status == "Missed Only" and "predicted_missed" in display_df.columns:
             display_df = display_df[display_df["predicted_missed"] == 1]
-        elif filter_status == "High Intent Only":
+        elif filter_status == "High Intent Only" and "high_intent_flag" in display_df.columns:
             display_df = display_df[display_df["high_intent_flag"] == 1]
-        if filter_customer != "All":
+        if has_gmail and filter_customer != "All":
             display_df = display_df[display_df["_customer_name"] == filter_customer]
+        elif not has_gmail and filter_customer != "All" and "channel" in display_df.columns:
+            display_df = display_df[display_df["channel"] == filter_customer]
 
         display_df = display_df.sort_values(sort_by, ascending=False)
 
-        # Show full details including body preview
-        show_cols = ["lead_id", "_customer_name", "_customer_email", "_subject",
-                     "message_text", "response_gap_hrs", "high_intent_flag",
-                     "missed_probability", "predicted_missed", "_received_time"]
-        table_df = display_df[show_cols].copy()
-        table_df.columns = ["Lead ID", "Customer", "Email", "Subject",
-                            "Message", "Gap (hrs)", "Intent", "Prob.", "Missed?", "Received"]
-        table_df["Prob."] = table_df["Prob."].apply(lambda x: f"{x:.2%}")
-        table_df["Intent"] = table_df["Intent"].map({1: "HIGH", 0: "low"})
-        table_df["Missed?"] = table_df["Missed?"].map({1: "🔴 YES", 0: "🟢 No"})
-        table_df["Message"] = table_df["Message"].apply(lambda x: str(x)[:100] + "..." if len(str(x)) > 100 else x)
+        if has_gmail:
+            show_cols = [c for c in ["lead_id", "_customer_name", "_customer_email", "_subject",
+                         "message_text", "response_gap_hrs", "high_intent_flag",
+                         "missed_probability", "predicted_missed", "_received_time"] if c in display_df.columns]
+            table_df = display_df[show_cols].copy()
+            table_df.columns = ["Lead ID", "Customer", "Email", "Subject",
+                                "Message", "Gap (hrs)", "Intent", "Prob.", "Missed?", "Received"][:len(show_cols)]
+            if "Prob." in table_df.columns:
+                table_df["Prob."] = table_df["Prob."].apply(lambda x: f"{x:.2%}")
+            if "Intent" in table_df.columns:
+                table_df["Intent"] = table_df["Intent"].map({1: "HIGH", 0: "low"})
+            if "Missed?" in table_df.columns:
+                table_df["Missed?"] = table_df["Missed?"].map({1: "🔴 YES", 0: "🟢 No"})
+            if "Message" in table_df.columns:
+                table_df["Message"] = table_df["Message"].apply(lambda x: str(x)[:100] + "..." if len(str(x)) > 100 else x)
+        else:
+            show_cols = [c for c in ["lead_id", "channel", "message_text", "message_hour",
+                         "message_length", "high_intent_flag", "prev_contacts",
+                         "response_gap_hrs", "missed_probability", "predicted_missed"] if c in display_df.columns]
+            table_df = display_df[show_cols].copy()
+            rename = {"lead_id": "Lead ID", "channel": "Channel", "message_text": "Message",
+                      "message_hour": "Hour", "message_length": "Msg Len",
+                      "high_intent_flag": "Intent", "prev_contacts": "Contacts",
+                      "response_gap_hrs": "Gap (hrs)", "missed_probability": "Missed Prob.",
+                      "predicted_missed": "Predicted"}
+            table_df.columns = [rename.get(c, c) for c in table_df.columns]
+            if "Missed Prob." in table_df.columns:
+                table_df["Missed Prob."] = table_df["Missed Prob."].apply(lambda x: f"{x:.2%}")
+            if "Intent" in table_df.columns:
+                table_df["Intent"] = table_df["Intent"].map({1: "HIGH", 0: "low"})
+            if "Predicted" in table_df.columns:
+                table_df["Predicted"] = table_df["Predicted"].map({1: "🔴 YES", 0: "🟢 No"})
+            if "Message" in table_df.columns:
+                table_df["Message"] = table_df["Message"].apply(lambda x: str(x)[:100] + "..." if len(str(x)) > 100 else x)
 
         st.dataframe(table_df, use_container_width=True, height=500)
-        st.caption(f"Showing {len(table_df)} of {len(scored_df)} inbox leads")
+        st.caption(f"Showing {len(table_df)} of {len(scored_df)} scored leads")
     else:
-        st.warning("📭 No inbox data. Run the pipeline first.")
+        st.warning("📭 No scored data available. Run the pipeline or `python src/train_model.py` first.")
 
 # ══════════════════════════════════════════════════════════
 # PAGE: Model Results
@@ -524,14 +584,24 @@ elif page == "📧 Sent Follow-Ups":
     </div>""", unsafe_allow_html=True)
 
     if total_sent > 0:
-        # Check which scored leads were sent follow-ups
-        if len(scored_df) > 0:
+        if len(scored_df) > 0 and "lead_id" in scored_df.columns:
             scored_sent = scored_df[scored_df["lead_id"].isin(sent_lead_ids)]
             if len(scored_sent) > 0:
                 st.markdown("#### Recently Sent Follow-Ups")
-                sent_display = scored_sent[["lead_id", "_customer_name", "_customer_email", "_subject", "missed_probability"]].copy()
-                sent_display.columns = ["Lead ID", "Customer", "Email", "Subject", "Missed Prob."]
-                sent_display["Missed Prob."] = sent_display["Missed Prob."].apply(lambda x: f"{x:.1%}")
+                has_gmail = "_customer_name" in scored_sent.columns
+                if has_gmail:
+                    sent_display = scored_sent[["lead_id", "_customer_name", "_customer_email", "_subject", "missed_probability"]].copy()
+                    sent_display.columns = ["Lead ID", "Customer", "Email", "Subject", "Missed Prob."]
+                else:
+                    avail = ["lead_id"]
+                    for c in ["channel", "message_text", "missed_probability"]:
+                        if c in scored_sent.columns:
+                            avail.append(c)
+                    sent_display = scored_sent[avail].copy()
+                    r = {"lead_id": "Lead ID", "channel": "Channel", "message_text": "Message", "missed_probability": "Missed Prob."}
+                    sent_display.columns = [r.get(c, c) for c in sent_display.columns]
+                if "Missed Prob." in sent_display.columns:
+                    sent_display["Missed Prob."] = sent_display["Missed Prob."].apply(lambda x: f"{x:.1%}")
                 st.dataframe(sent_display, use_container_width=True)
 
         st.markdown("#### All Emailed Lead IDs")
