@@ -96,18 +96,52 @@ st.markdown(f"""
         background: var(--bg-primary);
     }}
 
+    /* Main content text visibility */
+    .stMarkdown p,
+    .stMarkdown li,
+    .stMarkdown span,
+    [data-testid="stMarkdownContainer"] p,
+    [data-testid="stMarkdownContainer"] li,
+    [data-testid="stMarkdownContainer"] span {{
+        color: var(--text-primary) !important;
+    }}
+
+    .stMarkdown h1,
+    .stMarkdown h2,
+    .stMarkdown h3,
+    .stMarkdown h4,
+    [data-testid="stMarkdownContainer"] h1,
+    [data-testid="stMarkdownContainer"] h2,
+    [data-testid="stMarkdownContainer"] h3,
+    [data-testid="stMarkdownContainer"] h4 {{
+        color: var(--text-primary) !important;
+    }}
+
     /* Sidebar styling */
     section[data-testid="stSidebar"] {{
         background: var(--bg-secondary) !important;
         border-right: 1px solid var(--border);
     }}
 
+    /* Sidebar text visibility */
     section[data-testid="stSidebar"] .stMarkdown p,
     section[data-testid="stSidebar"] .stMarkdown li,
     section[data-testid="stSidebar"] .stMarkdown h1,
     section[data-testid="stSidebar"] .stMarkdown h2,
     section[data-testid="stSidebar"] .stMarkdown h3,
-    section[data-testid="stSidebar"] .stRadio label {{
+    section[data-testid="stSidebar"] .stRadio label,
+    section[data-testid="stSidebar"] .stRadio span,
+    section[data-testid="stSidebar"] [data-baseweb="radio"] span,
+    section[data-testid="stSidebar"] [data-baseweb="radio"] label,
+    section[data-testid="stSidebar"] span {{
+        color: var(--text-primary) !important;
+    }}
+
+    section[data-testid="stSidebar"] .stRadio [data-baseweb="radio"] {{
+        color: var(--text-primary) !important;
+    }}
+
+    section[data-testid="stSidebar"] .stRadio [data-baseweb="radio"] > div {{
         color: var(--text-primary) !important;
     }}
 
@@ -228,6 +262,27 @@ st.markdown(f"""
         gap: 0.5rem;
     }}
 
+    /* Streamlit containers */
+    .stAlert p,
+    .stAlert span,
+    .stAlert div {{
+        color: var(--text-primary) !important;
+    }}
+
+    /* Dataframe cells */
+    [data-testid="stDataFrame"] td,
+    [data-testid="stDataFrame"] th,
+    [data-testid="stDataFrame"] span {{
+        color: var(--text-primary) !important;
+    }}
+
+    /* Code blocks */
+    .stCode code,
+    .stCode pre,
+    code, pre {{
+        color: var(--text-primary) !important;
+    }}
+
     .section-header::before {{
         content: '';
         width: 3px;
@@ -327,7 +382,7 @@ st.markdown(f"""
     .empty-state-icon {{
         font-size: 3rem;
         margin-bottom: 1rem;
-        opacity: 0.5;
+        opacity: 0.7;
     }}
 
     .empty-state-title {{
@@ -341,6 +396,7 @@ st.markdown(f"""
         font-size: 0.9rem;
         max-width: 400px;
         margin: 0 auto;
+        color: var(--text-primary);
     }}
 
     /* Button styling */
@@ -448,7 +504,7 @@ st.markdown(f"""
     .footer {{
         text-align: center;
         padding: 2rem 0;
-        color: var(--text-muted);
+        color: var(--text-secondary);
         font-size: 0.8rem;
         border-top: 1px solid var(--border);
         margin-top: 3rem;
