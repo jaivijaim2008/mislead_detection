@@ -96,13 +96,11 @@ st.markdown(f"""
         background: var(--bg-primary);
     }}
 
-    /* Main content text visibility */
+    /* Main content text visibility — only target markdown text, not alerts/dataframes */
     .stMarkdown p,
     .stMarkdown li,
-    .stMarkdown span,
     [data-testid="stMarkdownContainer"] p,
-    [data-testid="stMarkdownContainer"] li,
-    [data-testid="stMarkdownContainer"] span {{
+    [data-testid="stMarkdownContainer"] li {{
         color: var(--text-primary) !important;
     }}
 
@@ -123,25 +121,14 @@ st.markdown(f"""
         border-right: 1px solid var(--border);
     }}
 
-    /* Sidebar text visibility */
+    /* Sidebar text visibility — only markdown + radio labels, not all spans */
     section[data-testid="stSidebar"] .stMarkdown p,
     section[data-testid="stSidebar"] .stMarkdown li,
     section[data-testid="stSidebar"] .stMarkdown h1,
     section[data-testid="stSidebar"] .stMarkdown h2,
     section[data-testid="stSidebar"] .stMarkdown h3,
     section[data-testid="stSidebar"] .stRadio label,
-    section[data-testid="stSidebar"] .stRadio span,
-    section[data-testid="stSidebar"] [data-baseweb="radio"] span,
-    section[data-testid="stSidebar"] [data-baseweb="radio"] label,
-    section[data-testid="stSidebar"] span {{
-        color: var(--text-primary) !important;
-    }}
-
-    section[data-testid="stSidebar"] .stRadio [data-baseweb="radio"] {{
-        color: var(--text-primary) !important;
-    }}
-
-    section[data-testid="stSidebar"] .stRadio [data-baseweb="radio"] > div {{
+    section[data-testid="stSidebar"] [data-baseweb="radio"] label {{
         color: var(--text-primary) !important;
     }}
 
@@ -262,24 +249,9 @@ st.markdown(f"""
         gap: 0.5rem;
     }}
 
-    /* Streamlit containers */
-    .stAlert p,
-    .stAlert span,
-    .stAlert div {{
-        color: var(--text-primary) !important;
-    }}
-
-    /* Dataframe cells */
-    [data-testid="stDataFrame"] td,
-    [data-testid="stDataFrame"] th,
-    [data-testid="stDataFrame"] span {{
-        color: var(--text-primary) !important;
-    }}
-
     /* Code blocks */
     .stCode code,
-    .stCode pre,
-    code, pre {{
+    .stCode pre {{
         color: var(--text-primary) !important;
     }}
 
