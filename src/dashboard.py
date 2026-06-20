@@ -1,17 +1,32 @@
 """
-dashboard.py — Missed-Lead Detector
-Sales Team Command Center — Streamlit dashboard.
+dashboard.py — Missed-Lead Detector (SaaS Overhaul)
+Sales Team Command Center — Premium Dark Glassmorphic Dashboard.
 
-Shows: inbox monitoring, auto-reply log, follow-up status, notifications, model performance.
-
-Run: streamlit run src/dashboard.py
+Covers live monitoring, lead browsing, intent preview, ML visualisations, and business parameters editor.
 """
 
 import streamlit as st
 import pandas as pd
 import numpy as np
-import os, json, subprocess, sys
-from datetime import datetime, timezone
+import os
+import json
+import subprocess
+import sys
+from datetime import datetime
+
+# ── Import Fallbacks & Safety ──────────────────────────────
+try:
+    import plotly.express as px
+    import plotly.graph_objects as go
+    HAS_PLOTLY = True
+except ImportError:
+    HAS_PLOTLY = False
+
+try:
+    from PIL import Image
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
 
 # ── Paths ──────────────────────────────────────────────────
 BASE      = os.path.dirname(__file__)
@@ -30,953 +45,1137 @@ DL_ROC    = os.path.join(BASE, "..", "outputs", "dl_roc_curve.png")
 CMP_CHART = os.path.join(BASE, "..", "outputs", "model_comparison_chart.png")
 XGB_TUNING = os.path.join(BASE, "..", "outputs", "xgb_tuning_results.json")
 MERGED_DATA = os.path.join(BASE, "..", "data", "leads_merged.csv")
+OVERRIDES_PATH = os.path.join(BASE, "..", "logs", "config_overrides.json")
+
+# Import config constants directly for default previewing
+sys.path.insert(0, BASE)
+import config
 
 # ── Page Config ────────────────────────────────────────────
 st.set_page_config(
-    page_title="Missed-Lead Detector",
+    page_title="Missed-Lead Command Center",
     page_icon="🎯",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# ── Design System ──────────────────────────────────────────
-# Color palette - Sophisticated dark theme with warm accent
-COLORS = {
-    "bg_primary": "#0a0a0f",
-    "bg_secondary": "#12121a",
-    "bg_card": "#1a1a24",
-    "bg_card_hover": "#22222e",
-    "bg_elevated": "#252532",
-    "accent": "#e8a838",       # Warm amber/gold
-    "accent_soft": "#f0c060",
-    "accent_muted": "rgba(232, 168, 56, 0.15)",
-    "success": "#34d399",
-    "success_muted": "rgba(52, 211, 153, 0.15)",
-    "danger": "#f87171",
-    "danger_muted": "rgba(248, 113, 113, 0.15)",
-    "warning": "#fbbf24",
-    "warning_muted": "rgba(251, 191, 36, 0.15)",
-    "info": "#60a5fa",
-    "info_muted": "rgba(96, 165, 250, 0.15)",
-    "text_primary": "#f0f0f5",
-    "text_secondary": "#9898a6",
-    "text_muted": "#5a5a6e",
-    "border": "#2a2a38",
-    "border_light": "#35354a",
-}
-
-# ── Custom CSS ─────────────────────────────────────────────
-st.markdown(f"""
+# ── CSS Design System (Sleek Dark Glassmorphism) ───────────
+DESIGN_CSS = """
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
-    /* Root variables */
-    :root {{
-        --bg-primary: {COLORS["bg_primary"]};
-        --bg-secondary: {COLORS["bg_secondary"]};
-        --bg-card: {COLORS["bg_card"]};
-        --bg-card-hover: {COLORS["bg_card_hover"]};
-        --accent: {COLORS["accent"]};
-        --accent-soft: {COLORS["accent_soft"]};
-        --text-primary: {COLORS["text_primary"]};
-        --text-secondary: {COLORS["text_secondary"]};
-        --text-muted: {COLORS["text_muted"]};
-        --border: {COLORS["border"]};
-    }}
+    /* Global settings */
+    html, body, [class*="st-"] {
+        font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    }
+    
+    .stApp {
+        background: radial-gradient(circle at 80% 10%, rgba(26, 26, 42, 0.4) 0%, rgba(10, 10, 15, 1) 100%), #0a0a0f !important;
+        color: #f0f0f5 !important;
+    }
 
-    /* Global typography */
-    html, body, [class*="st-"] {{
-        font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-    }}
+    /* Sidebar glass effect */
+    section[data-testid="stSidebar"] {
+        background: rgba(14, 14, 22, 0.7) !important;
+        backdrop-filter: blur(12px);
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    section[data-testid="stSidebar"] .stMarkdown p, 
+    section[data-testid="stSidebar"] .stMarkdown h2, 
+    section[data-testid="stSidebar"] label {
+        color: #f0f0f5 !important;
+    }
 
-    /* Main background */
-    .stApp {{
-        background: var(--bg-primary);
-    }}
-
-    /* Main content text visibility — only target markdown text, not alerts/dataframes */
-    .stMarkdown p,
-    .stMarkdown li,
-    [data-testid="stMarkdownContainer"] p,
-    [data-testid="stMarkdownContainer"] li {{
-        color: var(--text-primary) !important;
-    }}
-
-    .stMarkdown h1,
-    .stMarkdown h2,
-    .stMarkdown h3,
-    .stMarkdown h4,
-    [data-testid="stMarkdownContainer"] h1,
-    [data-testid="stMarkdownContainer"] h2,
-    [data-testid="stMarkdownContainer"] h3,
-    [data-testid="stMarkdownContainer"] h4 {{
-        color: var(--text-primary) !important;
-    }}
-
-    /* Sidebar styling */
-    section[data-testid="stSidebar"] {{
-        background: var(--bg-secondary) !important;
-        border-right: 1px solid var(--border);
-    }}
-
-    /* Sidebar text visibility — only markdown + radio labels, not all spans */
-    section[data-testid="stSidebar"] .stMarkdown p,
-    section[data-testid="stSidebar"] .stMarkdown li,
-    section[data-testid="stSidebar"] .stMarkdown h1,
-    section[data-testid="stSidebar"] .stMarkdown h2,
-    section[data-testid="stSidebar"] .stMarkdown h3,
-    section[data-testid="stSidebar"] .stRadio label,
-    section[data-testid="stSidebar"] [data-baseweb="radio"] label {{
-        color: var(--text-primary) !important;
-    }}
-
-    /* Header */
-    .main-header {{
-        background: linear-gradient(135deg, {COLORS["bg_card"]} 0%, {COLORS["bg_elevated"]} 100%);
-        border: 1px solid {COLORS["border"]};
+    /* Glass card container */
+    .glass-card {
+        background: rgba(22, 22, 34, 0.35);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
         border-radius: 16px;
-        padding: 2.5rem 3rem;
+        padding: 1.5rem;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        margin-bottom: 1.5rem;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+    }
+    
+    .glass-card:hover {
+        border-color: rgba(232, 168, 56, 0.18);
+        box-shadow: 0 12px 40px 0 rgba(232, 168, 56, 0.04);
+        transform: translateY(-2px);
+    }
+    
+    /* Header glass container */
+    .app-header {
+        background: linear-gradient(135deg, rgba(26, 26, 38, 0.6) 0%, rgba(15, 15, 24, 0.8) 100%);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 20px;
+        padding: 2rem;
         margin-bottom: 2rem;
         position: relative;
         overflow: hidden;
-    }}
-
-    .main-header::before {{
+    }
+    
+    .app-header::before {
         content: '';
         position: absolute;
-        top: 0;
-        right: 0;
+        top: -100px;
+        right: -100px;
         width: 300px;
         height: 300px;
-        background: radial-gradient(circle, {COLORS["accent_muted"]} 0%, transparent 70%);
+        background: radial-gradient(circle, rgba(232, 168, 56, 0.12) 0%, transparent 70%);
         pointer-events: none;
-    }}
-
-    .main-header h1 {{
-        color: var(--text-primary);
+    }
+    
+    .app-header h1 {
+        font-weight: 800;
+        font-size: 2.5rem;
+        letter-spacing: -0.04em;
+        background: linear-gradient(135deg, #f0f0f5 30%, #e8a838 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
         margin: 0;
-        font-size: 2rem;
-        font-weight: 700;
-        letter-spacing: -0.03em;
-        position: relative;
-    }}
-
-    .main-header p {{
-        color: var(--text-secondary);
-        margin: 0.75rem 0 0 0;
-        font-size: 1rem;
+    }
+    
+    .app-header p {
+        color: #9898a6;
+        margin-top: 0.5rem;
+        font-size: 1.05rem;
         font-weight: 400;
-        letter-spacing: -0.01em;
-        position: relative;
-    }}
+        margin-bottom: 0;
+    }
 
-    /* Metric cards - Premium glass effect */
-    .metric-card {{
-        background: var(--bg-card);
-        border: 1px solid var(--border);
+    /* KPI Metrics custom layout */
+    .kpi-container {
+        display: flex;
+        gap: 1.25rem;
+        margin-bottom: 1.75rem;
+    }
+    
+    .kpi-card {
+        flex: 1;
+        background: rgba(22, 22, 34, 0.4);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-left: 4px solid var(--accent-color, #e8a838);
         border-radius: 12px;
-        padding: 1.5rem;
-        text-align: center;
-        transition: all 0.2s ease;
+        padding: 1.25rem 1.5rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         overflow: hidden;
-    }}
-
-    .metric-card::before {{
+    }
+    
+    .kpi-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 10px rgba(255, 255, 255, 0.02);
+        border-color: var(--accent-color, #e8a838);
+    }
+    
+    .kpi-card::after {
         content: '';
         position: absolute;
         top: 0;
         left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, transparent, var(--card-accent, var(--accent)), transparent);
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 10% 20%, var(--glow-color, rgba(232, 168, 56, 0.08)) 0%, transparent 60%);
         opacity: 0;
-        transition: opacity 0.2s ease;
-    }}
-
-    .metric-card:hover {{
-        border-color: var(--border-light);
-        transform: translateY(-2px);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    }}
-
-    .metric-card:hover::before {{
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+    }
+    
+    .kpi-card:hover::after {
         opacity: 1;
-    }}
-
-    .metric-value {{
+    }
+    
+    .kpi-value {
         font-size: 2.25rem;
-        font-weight: 700;
-        color: var(--text-primary);
+        font-weight: 800;
+        color: #ffffff;
         line-height: 1;
-        font-variant-numeric: tabular-nums;
-        letter-spacing: -0.04em;
-    }}
-
-    .metric-label {{
+        letter-spacing: -0.03em;
+        font-family: 'JetBrains Mono', monospace;
+    }
+    
+    .kpi-label {
         font-size: 0.8rem;
-        color: var(--text-secondary);
-        margin-top: 0.75rem;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-    }}
-
-    /* Card accent variants */
-    .metric-card.accent-danger {{ --card-accent: var(--danger); }}
-    .metric-card.accent-success {{ --card-accent: var(--success); }}
-    .metric-card.accent-warning {{ --card-accent: var(--warning); }}
-    .metric-card.accent-info {{ --card-accent: var(--info); }}
-    .metric-card.accent-gold {{ --card-accent: var(--accent); }}
-
-    .metric-card.accent-danger .metric-value {{ color: var(--danger); }}
-    .metric-card.accent-success .metric-value {{ color: var(--success); }}
-    .metric-card.accent-warning .metric-value {{ color: var(--warning); }}
-    .metric-card.accent-info .metric-value {{ color: var(--info); }}
-    .metric-card.accent-gold .metric-value {{ color: var(--accent); }}
-
-    /* Section headers */
-    .section-header {{
-        font-size: 1.1rem;
+        color: #9898a6;
+        margin-top: 0.5rem;
         font-weight: 600;
-        color: var(--text-primary);
-        margin: 2rem 0 1.25rem 0;
-        letter-spacing: -0.02em;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }}
-
-    /* Code blocks */
-    .stCode code,
-    .stCode pre {{
-        color: var(--text-primary) !important;
-    }}
-
-    .section-header::before {{
-        content: '';
-        width: 3px;
-        height: 1.1rem;
-        background: var(--accent);
-        border-radius: 2px;
-    }}
-
-    /* Status badges */
-    .status-badge {{
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        padding: 0.35rem 0.85rem;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        letter-spacing: 0.02em;
         text-transform: uppercase;
-    }}
+        letter-spacing: 0.06em;
+    }
+    
+    .kpi-card.blue { --accent-color: #60a5fa; --glow-color: rgba(96, 165, 250, 0.08); }
+    .kpi-card.red { --accent-color: #f87171; --glow-color: rgba(248, 113, 113, 0.08); }
+    .kpi-card.green { --accent-color: #34d399; --glow-color: rgba(52, 211, 153, 0.08); }
+    .kpi-card.yellow { --accent-color: #fbbf24; --glow-color: rgba(251, 191, 36, 0.08); }
+    .kpi-card.gold { --accent-color: #e8a838; --glow-color: rgba(232, 168, 56, 0.08); }
 
-    .status-live {{
-        background: var(--success_muted);
-        color: var(--success);
-        border: 1px solid rgba(52, 211, 153, 0.2);
-    }}
+    .kpi-card.blue .kpi-value { color: #60a5fa; }
+    .kpi-card.red .kpi-value { color: #f87171; }
+    .kpi-card.green .kpi-value { color: #34d399; }
+    .kpi-card.yellow .kpi-value { color: #fbbf24; }
+    .kpi-card.gold .kpi-value { color: #e8a838; }
 
-    .status-live::before {{
-        content: '';
-        width: 6px;
-        height: 6px;
-        background: var(--success);
-        border-radius: 50%;
-        animation: pulse 2s infinite;
-    }}
-
-    .status-demo {{
-        background: var(--warning_muted);
-        color: var(--warning);
-        border: 1px solid rgba(251, 191, 36, 0.2);
-    }}
-
-    @keyframes pulse {{
-        0%, 100% {{ opacity: 1; }}
-        50% {{ opacity: 0.5; }}
-    }}
-
-    /* Notification cards */
-    .notif-card {{
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-left: 3px solid var(--danger);
-        border-radius: 8px;
+    /* Custom Notification Cards */
+    .notif-card {
+        background: rgba(26, 26, 38, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-left: 3px solid #e8a838;
+        border-radius: 10px;
         padding: 1rem 1.25rem;
         margin-bottom: 0.75rem;
         transition: all 0.2s ease;
-    }}
-
-    .notif-card:hover {{
-        border-color: var(--border-light);
-        background: var(--bg-card-hover);
-    }}
-
-    .notif-card.auto-reply {{
-        border-left-color: var(--success);
-    }}
-
-    .notif-card.overdue {{
-        border-left-color: var(--warning);
-    }}
-
-    .notif-title {{
-        color: var(--text-primary);
-        font-weight: 600;
-        font-size: 0.9rem;
+    }
+    
+    .notif-card:hover {
+        background: rgba(30, 30, 46, 0.5);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .notif-card.new_lead { border-left-color: #60a5fa; }
+    .notif-card.auto_reply { border-left-color: #34d399; }
+    .notif-card.overdue { border-left-color: #f87171; }
+    
+    .notif-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         margin-bottom: 0.25rem;
-    }}
-
-    .notif-time {{
-        color: var(--text-muted);
-        font-size: 0.75rem;
-    }}
-
-    .notif-message {{
-        color: var(--text-secondary);
-        font-size: 0.85rem;
-        margin-top: 0.5rem;
-    }}
-
-    /* Empty state */
-    .empty-state {{
-        text-align: center;
-        padding: 4rem 2rem;
-        color: var(--text-secondary);
-    }}
-
-    .empty-state-icon {{
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        opacity: 0.7;
-    }}
-
-    .empty-state-title {{
-        font-size: 1.1rem;
+    }
+    
+    .notif-title {
         font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 0.5rem;
-    }}
+        font-size: 0.95rem;
+        color: #ffffff;
+    }
+    
+    .notif-time {
+        font-size: 0.75rem;
+        color: #5a5a6e;
+        font-family: 'JetBrains Mono', monospace;
+    }
+    
+    .notif-msg {
+        font-size: 0.85rem;
+        color: #9898a6;
+        line-height: 1.4;
+    }
 
-    .empty-state-text {{
-        font-size: 0.9rem;
-        max-width: 400px;
-        margin: 0 auto;
-        color: var(--text-primary);
-    }}
+    /* Terminal Monitor Output */
+    .terminal-box {
+        background: #060609 !important;
+        border: 1px solid #1f1f2e !important;
+        border-radius: 12px !important;
+        padding: 1.25rem !important;
+        font-family: 'JetBrains Mono', monospace !important;
+        font-size: 0.85rem !important;
+        color: #a3e635 !important;
+        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8) !important;
+        line-height: 1.5 !important;
+        max-height: 400px;
+        overflow-y: auto;
+    }
 
-    /* Button styling */
-    .stButton > button {{
-        background: var(--bg-card) !important;
-        color: var(--text-primary) !important;
-        border: 1px solid var(--border) !important;
-        border-radius: 8px !important;
-        font-weight: 500 !important;
-        transition: all 0.2s ease !important;
-    }}
+    /* Status Badges */
+    .custom-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .badge-live {
+        background: rgba(52, 211, 153, 0.12);
+        color: #34d399;
+        border: 1px solid rgba(52, 211, 153, 0.2);
+    }
+    
+    .badge-live::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        background: #34d399;
+        border-radius: 50%;
+        animation: status-pulse 2s infinite;
+    }
+    
+    .badge-demo {
+        background: rgba(251, 191, 36, 0.12);
+        color: #fbbf24;
+        border: 1px solid rgba(251, 191, 36, 0.2);
+    }
+    
+    @keyframes status-pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.4; transform: scale(0.9); }
+    }
 
-    .stButton > button:hover {{
-        border-color: var(--accent) !important;
-        background: var(--bg-card-hover) !important;
-    }}
-
-    .stButton > button:focus {{
-        box-shadow: 0 0 0 2px var(--accent_muted) !important;
-        border-color: var(--accent) !important;
-    }}
-
-    .stButton > button[data-testid="stBaseButton-primary"] {{
-        background: var(--accent) !important;
-        color: var(--bg-primary) !important;
-        border: none !important;
-        font-weight: 600 !important;
-    }}
-
-    .stButton > button[data-testid="stBaseButton-primary"]:hover {{
-        background: var(--accent-soft) !important;
-    }}
-
-    /* Dataframe styling */
-    .stDataFrame {{
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        overflow: hidden;
-    }}
-
-    /* Metric component */
-    [data-testid="stMetric"] {{
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        padding: 1rem;
-    }}
-
-    [data-testid="stMetricValue"] {{
-        color: var(--text-primary) !important;
-        font-variant-numeric: tabular-nums;
-    }}
-
-    [data-testid="stMetricLabel"] {{
-        color: var(--text-secondary) !important;
-    }}
-
-    /* Tab styling */
-    .stTabs [data-baseweb="tab-list"] {{
-        gap: 0;
-        background: var(--bg-secondary);
-        border-radius: 8px;
-        padding: 0.25rem;
-    }}
-
-    .stTabs [data-baseweb="tab"] {{
-        background: transparent;
-        border-radius: 6px;
-        color: var(--text-secondary);
+    /* Email Mock Client Frame */
+    .email-mock {
+        background: rgba(10, 10, 15, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-top: 1rem;
+        font-family: sans-serif;
+    }
+    
+    .email-mock-header {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        padding-bottom: 0.75rem;
+        margin-bottom: 0.75rem;
+        font-size: 0.85rem;
+        color: #9898a6;
+    }
+    
+    .email-mock-header span {
+        color: #ffffff;
         font-weight: 500;
-        padding: 0.5rem 1rem;
-    }}
+    }
+    
+    .email-mock-body {
+        font-size: 0.9rem;
+        color: #f0f0f5;
+        line-height: 1.5;
+        white-space: pre-wrap;
+    }
 
-    .stTabs [aria-selected="true"] {{
-        background: var(--bg-card) !important;
-        color: var(--text-primary) !important;
-    }}
-
-    /* Focus states for accessibility */
-    *:focus-visible {{
-        outline: 2px solid var(--accent);
-        outline-offset: 2px;
-    }}
-
-    /* Scrollbar styling */
-    ::-webkit-scrollbar {{
-        width: 8px;
-        height: 8px;
-    }}
-
-    ::-webkit-scrollbar-track {{
-        background: var(--bg-secondary);
-    }}
-
-    ::-webkit-scrollbar-thumb {{
-        background: var(--border);
-        border-radius: 4px;
-    }}
-
-    ::-webkit-scrollbar-thumb:hover {{
-        background: var(--border-light);
-    }}
-
-    /* Footer */
-    .footer {{
+    /* Streamlit overrides for custom theme compatibility */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0.5rem;
+        background: rgba(14, 14, 22, 0.6);
+        border-radius: 10px;
+        padding: 0.3rem;
+        border: 1px solid rgba(255, 255, 255, 0.03);
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        background: transparent;
+        border-radius: 8px;
+        color: #9898a6 !important;
+        font-weight: 600;
+        padding: 0.4rem 1.25rem;
+        border: none !important;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background: rgba(232, 168, 56, 0.15) !important;
+        color: #e8a838 !important;
+        border: 1px solid rgba(232, 168, 56, 0.25) !important;
+    }
+    
+    /* Input Styling */
+    div[data-baseweb="select"], div[data-baseweb="input"] input, textarea {
+        background: rgba(22, 22, 34, 0.5) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        color: #ffffff !important;
+        border-radius: 8px !important;
+    }
+    
+    /* Button overrides */
+    .stButton > button {
+        background: rgba(22, 22, 34, 0.6) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 8px !important;
+        padding: 0.5rem 1.5rem !important;
+        font-weight: 600 !important;
+        transition: all 0.25s ease !important;
+    }
+    
+    .stButton > button:hover {
+        border-color: #e8a838 !important;
+        color: #e8a838 !important;
+        box-shadow: 0 4px 15px rgba(232, 168, 56, 0.1) !important;
+        transform: translateY(-1px);
+    }
+    
+    .stButton > button[data-testid="stBaseButton-primary"] {
+        background: #e8a838 !important;
+        color: #0a0a0f !important;
+        border: none !important;
+    }
+    
+    .stButton > button[data-testid="stBaseButton-primary"]:hover {
+        background: #f0c060 !important;
+        box-shadow: 0 4px 20px rgba(232, 168, 56, 0.3) !important;
+    }
+    
+    /* Hide Streamlit elements */
+    #MainMenu, footer {visibility: hidden;}
+    
+    /* Custom footer styles */
+    .app-footer {
         text-align: center;
-        padding: 2rem 0;
-        color: var(--text-secondary);
+        padding: 2.5rem 0 1rem 0;
+        color: #5a5a6e;
         font-size: 0.8rem;
-        border-top: 1px solid var(--border);
-        margin-top: 3rem;
-    }}
+        border-top: 1px solid rgba(255, 255, 255, 0.04);
+        margin-top: 4rem;
+        letter-spacing: 0.05em;
+    }
 </style>
-""", unsafe_allow_html=True)
+"""
 
-# ── Header ─────────────────────────────────────────────────
-st.markdown("""
-<div class="main-header">
-    <h1>Missed-Lead Detector</h1>
-    <p>Automated inbox monitoring, smart replies & follow-up management</p>
+st.markdown(DESIGN_CSS, unsafe_allow_html=True)
+
+# ── Dynamic Configuration Overrides Handler ────────────────
+def load_overrides():
+    if os.path.exists(OVERRIDES_PATH):
+        try:
+            with open(OVERRIDES_PATH) as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+def save_overrides(data):
+    os.makedirs(os.path.dirname(OVERRIDES_PATH), exist_ok=True)
+    with open(OVERRIDES_PATH, "w") as f:
+        json.dump(data, f, indent=2, default=str)
+    # Clear streamlit cache to propagate changes
+    st.cache_data.clear()
+
+overrides = load_overrides()
+
+# ── Data Loading Helpers ──────────────────────────────────
+@st.cache_data(ttl=15)
+def load_scored_leads():
+    if os.path.exists(SCORED):
+        df = pd.read_csv(SCORED)
+        if "replied" in df.columns and "predicted_missed" not in df.columns:
+            # map replied to predicted_missed (positive class: replied=0 -> missed=1)
+            df["predicted_missed"] = df["replied"].map({1: 0, 0: 1})
+        return df
+    return pd.DataFrame()
+
+@st.cache_data(ttl=15)
+def load_json_log(path):
+    if os.path.exists(path):
+        try:
+            with open(path) as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return [] if "list" in path or path.endswith("s.json") else {}
+
+# ── Connection Checks ──────────────────────────────────────
+def is_live_mode() -> bool:
+    return bool(os.getenv("IMAP_USER")) or bool(os.getenv("SMTP_USER"))
+
+# ── Header Section ─────────────────────────────────────────
+live_connected = is_live_mode()
+status_label = "Live Pipeline Connected" if live_connected else "Demo Mode — Synthetic Sandbox"
+status_class = "badge-live" if live_connected else "badge-demo"
+
+st.markdown(f"""
+<div class="app-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>Missed-Lead Command Center</h1>
+        <span class="custom-badge {status_class}">{status_label}</span>
+    </div>
+    <p>AI-Powered Email Monitoring, Smart Auto-Replies & Sales Pipeline Retention Dashboard</p>
 </div>
 """, unsafe_allow_html=True)
 
-# ── Sidebar ────────────────────────────────────────────────
+# ── Sidebar Configurations & Navigation ───────────────────
 with st.sidebar:
     st.markdown("## Navigation")
-
-    # Custom styled radio for navigation
     page = st.radio(
-        "Go to",
-        ["Dashboard", "Inbox", "Auto-Replies", "Notifications", "Model Performance", "Settings"],
+        "Go to:",
+        ["Command Center", "Lead Explorer", "Auto-Replies Tracker", "ML Analytics Playground", "Workflow Settings"],
         label_visibility="collapsed"
     )
-
+    
     st.markdown("---")
-
-    # Quick stats in sidebar
-    scored_exists = os.path.exists(SCORED)
-    notif_count = 0
-    if os.path.exists(NOTIF_LOG):
-        with open(NOTIF_LOG) as f:
-            notifs = json.load(f)
-            notif_count = sum(1 for n in notifs if not n.get("read", False))
-
-    if notif_count > 0:
-        st.markdown(f"""
-        <div style="background: {COLORS['danger_muted']}; border: 1px solid rgba(248, 113, 113, 0.2);
-                    border-radius: 8px; padding: 0.75rem 1rem; margin-top: 1rem;">
-            <span style="color: {COLORS['danger']}; font-weight: 600; font-size: 0.9rem;">
-                {notif_count} unread alert{"s" if notif_count > 1 else ""}
-            </span>
-        </div>
-        """, unsafe_allow_html=True)
-
-# ── Helpers ────────────────────────────────────────────────
-def is_live_configured() -> bool:
-    return bool(os.getenv("IMAP_USER")) or bool(os.getenv("SMTP_USER"))
-
-
-@st.cache_data(ttl=30)
-def load_scored():
-    if os.path.exists(SCORED):
-        return pd.read_csv(SCORED)
-    return pd.DataFrame()
-
-
-@st.cache_data(ttl=30)
-def load_json(path):
-    if os.path.exists(path):
-        with open(path) as f:
-            return json.load(f)
-    return [] if "list" in path else {}
-
-
-@st.cache_data(ttl=30)
-def load_followup_status():
-    if os.path.exists(FOLLOWUP_LOG):
-        with open(FOLLOWUP_LOG) as f:
-            return json.load(f)
-    return {}
-
-
-def render_empty_state(icon: str, title: str, text: str):
-    """Render a consistent empty state component."""
+    st.markdown("### Inbox Monitor Health")
+    
+    leads_df = load_scored_leads()
+    notifs = load_json_log(NOTIF_LOG)
+    unread_notifs = [n for n in notifs if not n.get("read", False)] if isinstance(notifs, list) else []
+    
+    # Styled inbox status box
+    inbox_status_icon = "🟢" if live_connected else "🟡"
     st.markdown(f"""
-    <div class="empty-state">
-        <div class="empty-state-icon">{icon}</div>
-        <div class="empty-state-title">{title}</div>
-        <div class="empty-state-text">{text}</div>
+    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); 
+                border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.85rem; line-height: 1.6;">
+        <div><b>Gmail Connection</b>: {inbox_status_icon} {'Active' if live_connected else 'Simulated'}</div>
+        <div><b>Total Scored</b>: {len(leads_df)} leads</div>
+        <div><b>Unread Alerts</b>: <span style="color: {'#f87171' if len(unread_notifs) > 0 else '#9898a6'}; font-weight: bold;">{len(unread_notifs)}</span></div>
     </div>
     """, unsafe_allow_html=True)
 
+    st.markdown("---")
+    st.markdown("<p style='font-size: 0.75rem; color:#5a5a6e; text-align: center;'>Missed-Lead Detector v2.0<br>Batch 2025-27</p>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════
-# PAGE: Dashboard
+# PAGE: Command Center
 # ══════════════════════════════════════════════════════════
-if page == "Dashboard":
-    st.markdown('<div class="section-header">Sales Team Overview</div>', unsafe_allow_html=True)
-
-    live = is_live_configured()
-    status_text = "Monitoring Gmail" if live else "Using sample data"
-    status_class = "status-live" if live else "status-demo"
-    st.markdown(f'Pipeline: <span class="status-badge {status_class}">{status_text}</span>',
-                unsafe_allow_html=True)
-
-    scored = load_scored()
-    followup = load_followup_status()
-    reply_log = load_json(REPLY_LOG)
-
-    # Metric cards - Asymmetric layout for visual interest
-    col_wide, col_narrow = st.columns([2, 1])
-
-    with col_wide:
-        m1, m2 = st.columns(2)
-        with m1:
-            total = len(scored)
-            st.markdown(f"""<div class="metric-card accent-info">
-                <div class="metric-value">{total:,}</div>
-                <div class="metric-label">Total Leads</div>
-            </div>""", unsafe_allow_html=True)
-        with m2:
-            missed = int(scored["predicted_missed"].sum()) if "predicted_missed" in scored.columns and len(scored) > 0 else 0
-            st.markdown(f"""<div class="metric-card accent-danger">
-                <div class="metric-value">{missed}</div>
-                <div class="metric-label">Missed Leads</div>
-            </div>""", unsafe_allow_html=True)
-
-    with col_narrow:
-        replied = len([r for r in reply_log if isinstance(r, dict)])
-        st.markdown(f"""<div class="metric-card accent-success">
-            <div class="metric-value">{replied}</div>
-            <div class="metric-label">Auto-Replied</div>
-        </div>""", unsafe_allow_html=True)
-
-    # Second row
-    m3, m4 = st.columns(2)
-    with m3:
-        overdue = len([s for s in followup.values()
-                      if isinstance(s, dict) and s.get("auto_replied")
-                      and not s.get("human_followed_up")])
-        st.markdown(f"""<div class="metric-card accent-warning">
-            <div class="metric-value">{overdue}</div>
-            <div class="metric-label">Awaiting Human</div>
-        </div>""", unsafe_allow_html=True)
-
-    with m4:
-        if "high_intent_flag" in scored.columns and len(scored) > 0:
-            hi = int(scored["high_intent_flag"].sum())
-        else:
-            hi = 0
-        st.markdown(f"""<div class="metric-card accent-gold">
-            <div class="metric-value">{hi}</div>
-            <div class="metric-label">High Intent</div>
-        </div>""", unsafe_allow_html=True)
-
-    # Lead status breakdown
-    if len(scored) > 0:
-        st.markdown('<div class="section-header">Lead Distribution</div>', unsafe_allow_html=True)
-
-        if "missed_probability" in scored.columns:
-            import matplotlib
-            matplotlib.use("Agg")
-            import matplotlib.pyplot as plt
-
-            fig, ax = plt.subplots(figsize=(10, 3))
-            fig.patch.set_facecolor(COLORS["bg_card"])
-            ax.set_facecolor(COLORS["bg_card"])
-
-            ax.hist(scored["missed_probability"], bins=20, color=COLORS["danger"],
-                   alpha=0.7, edgecolor=COLORS["bg_card"], linewidth=1)
-            ax.axvline(0.5, color=COLORS["accent"], linestyle="--", linewidth=2, label="Threshold (0.5)")
-
-            ax.set_xlabel("Missed Probability", color=COLORS["text_secondary"], fontsize=10)
-            ax.set_ylabel("Count", color=COLORS["text_secondary"], fontsize=10)
-            ax.set_title("Lead Scoring Distribution", color=COLORS["text_primary"], fontsize=12, fontweight=600, pad=10)
-            ax.legend(facecolor=COLORS["bg_elevated"], edgecolor=COLORS["border"], labelcolor=COLORS["text_primary"])
-            ax.tick_params(colors=COLORS["text_muted"])
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
-            ax.spines["bottom"].set_color(COLORS["border"])
-            ax.spines["left"].set_color(COLORS["border"])
-
-            plt.tight_layout()
-            st.pyplot(fig)
-
-    # Recent inbox emails table
-    if len(scored) > 0:
-        st.markdown('<div class="section-header">Recent Leads</div>', unsafe_allow_html=True)
-        has_gmail = "_customer_name" in scored.columns
-
-        if has_gmail:
-            show_cols = [c for c in ["lead_id", "_customer_name", "_customer_email", "_subject",
-                                     "response_gap_hrs", "high_intent_flag",
-                                     "missed_probability", "predicted_missed"]
-                        if c in scored.columns]
-            display_df = scored[show_cols].head(20).copy()
-            rename = {"lead_id": "ID", "_customer_name": "Customer", "_customer_email": "Email",
-                      "_subject": "Subject", "response_gap_hrs": "Gap (hrs)",
-                      "high_intent_flag": "Intent", "missed_probability": "Missed %",
-                      "predicted_missed": "Status"}
-            display_df.columns = [rename.get(c, c) for c in display_df.columns]
-        else:
-            show_cols = [c for c in ["lead_id", "channel", "message_text",
-                                     "response_gap_hrs", "high_intent_flag",
-                                     "missed_probability", "predicted_missed"]
-                        if c in scored.columns]
-            display_df = scored[show_cols].head(20).copy()
-            rename = {"lead_id": "ID", "channel": "Channel", "message_text": "Message",
-                      "response_gap_hrs": "Gap (hrs)", "high_intent_flag": "Intent",
-                      "missed_probability": "Missed %", "predicted_missed": "Status"}
-            display_df.columns = [rename.get(c, c) for c in display_df.columns]
-
-        if "Missed %" in display_df.columns:
-            display_df["Missed %"] = display_df["Missed %"].apply(lambda x: f"{x:.0%}")
-        if "Intent" in display_df.columns:
-            display_df["Intent"] = display_df["Intent"].map({1: "HIGH", 0: "low"})
-        if "Status" in display_df.columns:
-            display_df["Status"] = display_df["Status"].map({1: "Missed", 0: "Responded"})
-        if "Message" in display_df.columns:
-            display_df["Message"] = display_df["Message"].apply(
-                lambda x: str(x)[:80] + "..." if len(str(x)) > 80 else x)
-
-        st.dataframe(display_df, use_container_width=True, height=350)
+if page == "Command Center":
+    # 1. KPI Metric Cards Row
+    scored = load_scored_leads()
+    reply_log = load_json_log(REPLY_LOG)
+    followup_status = load_json_log(FOLLOWUP_LOG)
+    
+    total_leads = len(scored)
+    
+    # Calculate counts
+    if "predicted_missed" in scored.columns and total_leads > 0:
+        missed_leads = int(scored["predicted_missed"].sum())
     else:
-        render_empty_state("📭", "No leads yet", "Scan your inbox to start detecting missed leads.")
+        missed_leads = 0
+        
+    replied_count = len(reply_log) if isinstance(reply_log, list) else 0
+    
+    overdue_count = 0
+    if isinstance(followup_status, dict):
+        overdue_count = sum(1 for s in followup_status.values() 
+                            if isinstance(s, dict) and s.get("auto_replied") and not s.get("human_followed_up"))
 
-# ══════════════════════════════════════════════════════════
-# PAGE: Inbox
-# ══════════════════════════════════════════════════════════
-elif page == "Inbox":
-    st.markdown('<div class="section-header">Email Inbox</div>', unsafe_allow_html=True)
+    high_intent = 0
+    if "high_intent_flag" in scored.columns and total_leads > 0:
+        high_intent = int(scored["high_intent_flag"].sum())
 
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Scan Inbox Now", type="primary", use_container_width=True):
-            with st.spinner("Scanning inbox for new emails..."):
+    # Build KPI metrics row using custom styled divs
+    st.markdown(f"""
+    <div class="kpi-container">
+        <div class="kpi-card blue">
+            <div class="kpi-value">{total_leads:,}</div>
+            <div class="kpi-label">Scanned Leads</div>
+        </div>
+        <div class="kpi-card red">
+            <div class="kpi-value">{missed_leads}</div>
+            <div class="kpi-label">Missed Leads</div>
+        </div>
+        <div class="kpi-card green">
+            <div class="kpi-value">{replied_count}</div>
+            <div class="kpi-label">Auto-Replied</div>
+        </div>
+        <div class="kpi-card yellow">
+            <div class="kpi-value">{overdue_count}</div>
+            <div class="kpi-label">Awaiting Sales Action</div>
+        </div>
+        <div class="kpi-card gold">
+            <div class="kpi-value">{high_intent}</div>
+            <div class="kpi-label">High Intent</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # 2. Main Columns
+    col_left, col_right = st.columns([2, 1])
+    
+    with col_left:
+        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+        st.subheader("📢 Inbox Monitoring Pipeline")
+        
+        # Scopes for triggering scan
+        c1, c2 = st.columns(2)
+        with c1:
+            scan_btn = st.button("Trigger Scan Now", type="primary", use_container_width=True)
+        with c2:
+            dry_btn = st.button("Simulate Dry-Run Scan", use_container_width=True)
+            
+        # Scan runner output
+        if scan_btn or dry_btn:
+            is_dry = bool(dry_btn)
+            st.markdown("**Pipeline Output:**")
+            with st.spinner("Processing mailbox via SMTP/IMAP..."):
                 try:
-                    env = os.environ.copy()
-                    result = subprocess.run(
-                        [sys.executable, "src/inbox_monitor.py"],
-                        cwd=os.path.dirname(BASE),
-                        capture_output=True, text=True, timeout=120, env=env
-                    )
-                    st.code(result.stdout[-3000:] if len(result.stdout) > 3000 else result.stdout,
-                           language="text")
-                    if result.stderr:
-                        st.warning(result.stderr[-1000:])
-                    st.cache_data.clear()
+                    cmd = [sys.executable, os.path.join(BASE, "inbox_monitor.py")]
+                    if is_dry:
+                        cmd.append("--dry-run")
+                    
+                    res = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+                    
+                    # Styled output terminal block
+                    stdout = res.stdout if res.stdout else "No output returned."
+                    st.markdown(f"<pre class='terminal-box'>{stdout}</pre>", unsafe_allow_html=True)
+                    if res.stderr:
+                        st.warning(f"Warnings reported:\n{res.stderr}")
+                    
+                    st.cache_data.clear() # reload lists
                     st.rerun()
-                except subprocess.TimeoutExpired:
-                    st.error("Scan timed out.")
                 except Exception as e:
-                    st.error(f"Error: {e}")
-
-    with col2:
-        if st.button("Dry Run (no sends)", use_container_width=True):
-            with st.spinner("Scanning inbox without sending..."):
-                try:
-                    env = os.environ.copy()
-                    result = subprocess.run(
-                        [sys.executable, "src/inbox_monitor.py", "--dry-run"],
-                        cwd=os.path.dirname(BASE),
-                        capture_output=True, text=True, timeout=120, env=env
-                    )
-                    st.code(result.stdout[-3000:] if len(result.stdout) > 3000 else result.stdout,
-                           language="text")
-                except Exception as e:
-                    st.error(f"Error: {e}")
-
-    scored = load_scored()
-    if len(scored) > 0:
-        st.markdown(f'<div class="section-header">All Scored Emails ({len(scored)})</div>', unsafe_allow_html=True)
-
-        has_gmail = "_customer_name" in scored.columns
-        if has_gmail:
-            cols = [c for c in ["lead_id", "_customer_name", "_customer_email", "_subject",
-                               "message_text", "response_gap_hrs", "high_intent_flag",
-                               "missed_probability", "predicted_missed", "_received_time"]
-                   if c in scored.columns]
+                    st.error(f"Execution Error: {e}")
         else:
-            cols = [c for c in ["lead_id", "channel", "message_text", "message_hour",
-                               "high_intent_flag", "prev_contacts", "response_gap_hrs",
-                               "missed_probability", "predicted_missed"]
-                   if c in scored.columns]
+            st.markdown("<p style='color: #5a5a6e; font-style: italic; margin-top:0.5rem;'>Trigger a pipeline scan to read Gmail inboxes, run machine learning predictions, and execute automatic replies.</p>", unsafe_allow_html=True)
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+        # Interactive Distribution chart
+        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+        st.subheader("📊 Lead Missed Probability Distribution")
+        
+        if total_leads > 0 and "missed_probability" in scored.columns:
+            if HAS_PLOTLY:
+                fig = px.histogram(
+                    scored, 
+                    x="missed_probability", 
+                    nbins=20,
+                    title="Lead Risk distribution (Threshold = 0.50)",
+                    labels={"missed_probability": "Predicted Missed Probability", "count": "Lead Count"},
+                    color_discrete_sequence=["#f87171"]
+                )
+                fig.update_layout(
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    font_color='#9898a6',
+                    title_font_color='#ffffff',
+                    showlegend=False,
+                    xaxis=dict(showgrid=False, linecolor='rgba(255,255,255,0.05)'),
+                    yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)', linecolor='rgba(255,255,255,0.05)'),
+                    margin=dict(l=40, r=40, t=40, b=40)
+                )
+                # Add threshold line
+                fig.add_vline(x=0.5, line_width=2, line_dash="dash", line_color="#fbbf24", 
+                              annotation_text="Score Threshold", annotation_position="top right")
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Visualisation loaded from file fallback")
+                if os.path.exists(CM_IMG) and HAS_PIL:
+                    st.image(Image.open(CM_IMG), use_container_width=True)
+        else:
+            st.info("No lead metrics scored. Trigger a scan above to ingest data.")
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+    with col_right:
+        # Alerts/Notifications Center
+        st.markdown("<div class='glass-card' style='height: 100%;'>", unsafe_allow_html=True)
+        st.subheader("🔔 Notification Feed")
+        
+        if isinstance(notifs, list) and notifs:
+            # Mark all as read button
+            if len(unread_notifs) > 0:
+                if st.button(f"Mark all read ({len(unread_notifs)})", use_container_width=True):
+                    for n in notifs:
+                        n["read"] = True
+                    # save back
+                    with open(NOTIF_LOG, "w") as f:
+                        json.dump(notifs, f, indent=2, default=str)
+                    st.rerun()
+            
+            # Show list
+            unread_count = 0
+            for i, n in enumerate(reversed(notifs)):
+                if not n.get("read", False) and unread_count < 10:
+                    ntype = n.get("type", "info")
+                    icon = "📧" if ntype == "new_lead" else ("🤖" if ntype == "auto_reply" else ("⚠️" if ntype == "overdue" else "ℹ️"))
+                    
+                    st.markdown(f"""
+                    <div class="notif-card {ntype}">
+                        <div class="notif-header">
+                            <span class="notif-title">{icon} {n.get('title', 'Notification')}</span>
+                            <span class="notif-time">{n.get('timestamp', '')[11:16]}</span>
+                        </div>
+                        <div class="notif-msg">{n.get('message', '')}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    unread_count += 1
+            if unread_count == 0:
+                st.markdown("<p style='text-align:center; color:#5a5a6e; padding: 2rem 0;'>All caught up! No unread notifications.</p>", unsafe_allow_html=True)
+        else:
+            st.markdown("<p style='text-align:center; color:#5a5a6e; padding: 2rem 0;'>No notifications found.</p>", unsafe_allow_html=True)
+            
+        st.markdown("</div>", unsafe_allow_html=True)
 
-        display = scored[cols].copy()
-        rename = {"lead_id": "ID", "_customer_name": "Customer", "_customer_email": "Email",
-                  "_subject": "Subject", "message_text": "Message", "channel": "Channel",
-                  "message_hour": "Hour", "prev_contacts": "Contacts",
-                  "response_gap_hrs": "Gap (hrs)", "high_intent_flag": "Intent",
-                  "missed_probability": "Missed %", "predicted_missed": "Status",
-                  "_received_time": "Received"}
-        display.columns = [rename.get(c, c) for c in display.columns]
-
-        if "Missed %" in display.columns:
-            display["Missed %"] = display["Missed %"].apply(lambda x: f"{x:.0%}")
-        if "Intent" in display.columns:
-            display["Intent"] = display["Intent"].map({1: "HIGH", 0: "low"})
-        if "Status" in display.columns:
-            display["Status"] = display["Status"].map({1: "Missed", 0: "Responded"})
-        if "Message" in display.columns:
-            display["Message"] = display["Message"].apply(
-                lambda x: str(x)[:100] + "..." if len(str(x)) > 100 else x)
-
-        st.dataframe(display, use_container_width=True, height=500)
+# ══════════════════════════════════════════════════════════
+# PAGE: Lead Explorer
+# ══════════════════════════════════════════════════════════
+elif page == "Lead Explorer":
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    st.subheader("🔍 Interactive Lead Table & Inspector")
+    
+    scored = load_scored_leads()
+    
+    if scored.empty:
+        st.warning("No leads recorded. Please trigger an inbox scan to fetch records.")
     else:
-        render_empty_state("📭", "No emails scanned yet", "Click 'Scan Inbox Now' to start monitoring your inbox.")
+        # Columns mapping to ensure user-friendly presentation
+        has_gmail_headers = "_customer_name" in scored.columns
+        
+        # Filter controls row
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            q_search = st.text_input("Search Customer / Email", "")
+        with c2:
+            q_status = st.selectbox("Pipeline Status", ["All", "Missed Leads", "Responded (Low risk)"])
+        with c3:
+            q_intent = st.selectbox("High Intent Only", ["All", "Yes", "No"])
+        with c4:
+            q_channel = st.selectbox("Channel Source", ["All"] + list(scored["channel"].unique()))
+            
+        # Querying leads
+        filtered = scored.copy()
+        
+        if q_search:
+            s_pat = q_search.lower()
+            if has_gmail_headers:
+                filtered = filtered[
+                    filtered["_customer_name"].str.lower().str.contains(s_pat, na=False) |
+                    filtered["_customer_email"].str.lower().str.contains(s_pat, na=False)
+                ]
+            else:
+                filtered = filtered[
+                    filtered["message_text"].str.lower().str.contains(s_pat, na=False)
+                ]
+                
+        if q_status != "All":
+            val = 1 if q_status == "Missed Leads" else 0
+            filtered = filtered[filtered["predicted_missed"] == val]
+            
+        if q_intent != "All":
+            val = 1 if q_intent == "Yes" else 0
+            filtered = filtered[filtered["high_intent_flag"] == val]
+            
+        if q_channel != "All":
+            filtered = filtered[filtered["channel"] == q_channel]
+            
+        # Selected column subset
+        if has_gmail_headers:
+            show_cols = ["lead_id", "_customer_name", "_customer_email", "_subject", "channel", 
+                         "response_gap_hrs", "high_intent_flag", "missed_probability", "predicted_missed"]
+            rename_map = {
+                "lead_id": "Lead ID",
+                "_customer_name": "Customer",
+                "_customer_email": "Email Address",
+                "_subject": "Subject Inquired",
+                "channel": "Source",
+                "response_gap_hrs": "Gap (Hrs)",
+                "high_intent_flag": "High Intent",
+                "missed_probability": "Risk Score",
+                "predicted_missed": "Missed"
+            }
+        else:
+            show_cols = ["lead_id", "channel", "message_text", "response_gap_hrs", 
+                         "high_intent_flag", "missed_probability", "predicted_missed"]
+            rename_map = {
+                "lead_id": "Lead ID",
+                "channel": "Source",
+                "message_text": "Inquiry Details",
+                "response_gap_hrs": "Gap (Hrs)",
+                "high_intent_flag": "High Intent",
+                "missed_probability": "Risk Score",
+                "predicted_missed": "Missed"
+            }
+            
+        display_df = filtered[show_cols].copy()
+        
+        # Friendly formats
+        display_df["missed_probability"] = display_df["missed_probability"].apply(lambda x: f"{x:.1%}")
+        display_df["predicted_missed"] = display_df["predicted_missed"].map({1: "🔴 MISSED", 0: "🟢 Safe"})
+        display_df["high_intent_flag"] = display_df["high_intent_flag"].map({1: "🔥 High", 0: "Normal"})
+        
+        display_df = display_df.rename(columns=rename_map)
+        
+        # Display Table
+        st.dataframe(display_df, use_container_width=True, height=300)
+        
+        # Lead detail inspector selection
+        st.markdown("---")
+        st.subheader("🔍 Details Inspector & Smart Reply Simulator")
+        
+        selected_id = st.selectbox("Select a Lead ID to inspect details:", ["-- None --"] + list(filtered["lead_id"].unique()))
+        
+        if selected_id != "-- None --":
+            lead_row = filtered[filtered["lead_id"] == selected_id].iloc[0]
+            
+            d_col1, d_col2 = st.columns([1, 1])
+            
+            with d_col1:
+                st.markdown("<div style='background:rgba(255,255,255,0.02); padding:1rem; border-radius:8px; border:1px solid rgba(255,255,255,0.04);'>", unsafe_allow_html=True)
+                st.markdown(f"**Lead Identifier:** `{lead_row['lead_id']}`")
+                
+                if has_gmail_headers:
+                    st.markdown(f"**Customer:** {lead_row['_customer_name']} (<{lead_row['_customer_email']}>)")
+                    st.markdown(f"**Subject:** {lead_row['_subject']}")
+                    st.markdown(f"**Received:** {lead_row.get('_received_time', 'Unknown')}")
+                else:
+                    st.markdown(f"**Source Channel:** {lead_row['channel']}")
+                
+                st.markdown(f"**Response Gap:** {lead_row['response_gap_hrs']:.1f} hours")
+                st.markdown(f"**Risk Score (ML Probability):** `{lead_row['missed_probability']:.2f}`")
+                st.markdown(f"**Classification Status:** {'🔴 MISSED LEAD' if lead_row['predicted_missed'] == 1 else '🟢 Responded'}")
+                
+                st.markdown("**Original Inquiry Message:**")
+                st.info(lead_row["message_text"])
+                st.markdown("</div>", unsafe_allow_html=True)
+                
+            with d_col2:
+                st.markdown("**Smart Auto-Reply Preview:**")
+                # Generate a mock reply based on engine
+                try:
+                    from smart_reply_engine import generate_reply
+                    reply_payload = generate_reply(
+                        customer_name=lead_row.get("_customer_name", "Valued Customer"),
+                        customer_email=lead_row.get("_customer_email", "customer@example.com"),
+                        subject=lead_row.get("_subject", "Enquiry"),
+                        message_text=lead_row["message_text"],
+                        channel=lead_row.get("channel", "Email")
+                    )
+                    
+                    st.markdown(f"**Detected Intent Category:** <span class='custom-badge badge-live' style='background:rgba(232,168,56,0.1); color:#e8a838; border-color:#e8a838;'>{reply_payload['detected_intent'].upper()}</span>", unsafe_allow_html=True)
+                    
+                    # Mock email editor
+                    st.markdown("""
+                    <div class="email-mock">
+                        <div class="email-mock-header">
+                            <div>From: <span>Sales Team &lt;noreply@yourcompany.com&gt;</span></div>
+                            <div>To: <span>{} &lt;{}&gt;</span></div>
+                            <div>Subject: <span>{}</span></div>
+                        </div>
+                        <div class="email-mock-body">{}</div>
+                    </div>
+                    """.format(
+                        lead_row.get("_customer_name", "Valued Customer"),
+                        lead_row.get("_customer_email", "customer@example.com"),
+                        reply_payload["reply_subject"],
+                        reply_payload["reply_body"]
+                    ), unsafe_allow_html=True)
+                    
+                except Exception as e:
+                    st.error(f"Could not load smart reply templates: {e}")
+                    
+        else:
+            st.info("Pick a lead ID above to drill down into logs, check ML features, and simulate reply drafts.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════
-# PAGE: Auto-Replies
+# PAGE: Auto-Replies Tracker
 # ══════════════════════════════════════════════════════════
-elif page == "Auto-Replies":
-    st.markdown('<div class="section-header">Auto-Reply Log</div>', unsafe_allow_html=True)
-    st.markdown("Every missed lead gets a human-like auto-reply. The client cannot tell it's automated.")
-
-    reply_log = load_json(REPLY_LOG)
-    followup = load_followup_status()
-
-    if reply_log:
+elif page == "Auto-Replies Tracker":
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    st.subheader("📬 Automated Auto-Replies History")
+    
+    reply_log = load_json_log(REPLY_LOG)
+    followup_status = load_json_log(FOLLOWUP_LOG)
+    
+    if not reply_log:
+        st.info("No auto-replies logged yet. Auto-replies are generated only when the inbox monitoring detects new missed leads.")
+    else:
+        # Load replies df
         reply_df = pd.DataFrame(reply_log)
-        st.markdown(f'<div class="section-header">{len(reply_df)} Auto-Replies Sent</div>', unsafe_allow_html=True)
-
-        # Intent breakdown
-        if "detected_intent" in reply_df.columns:
-            st.markdown("Intent Distribution")
-            intent_counts = reply_df["detected_intent"].value_counts()
-            st.bar_chart(intent_counts)
-
-        # Reply details
-        show_cols = [c for c in ["lead_id", "customer_name", "customer_email",
-                                "reply_subject", "detected_intent",
-                                "missed_probability", "replied_at"]
-                    if c in reply_df.columns]
-        display = reply_df[show_cols].copy()
-        rename = {"lead_id": "ID", "customer_name": "Customer", "customer_email": "Email",
-                  "reply_subject": "Reply Subject", "detected_intent": "Intent",
-                  "missed_probability": "Missed %", "replied_at": "Sent At"}
-        display.columns = [rename.get(c, c) for c in display.columns]
-        if "Missed %" in display.columns:
-            display["Missed %"] = display["Missed %"].apply(lambda x: f"{x:.0%}")
-
-        st.dataframe(display, use_container_width=True, height=400)
-
-        # Follow-up tracking
-        st.markdown('<div class="section-header">Follow-Up Status</div>', unsafe_allow_html=True)
-        if followup:
-            fu_data = []
-            for lid, status in followup.items():
-                if isinstance(status, dict):
-                    fu_data.append({
-                        "Lead ID": lid,
-                        "Customer": status.get("customer_name", ""),
-                        "Auto-Replied": "Yes" if status.get("auto_replied") else "No",
-                        "Human Follow-Up": "Completed" if status.get("human_followed_up") else "Pending",
-                        "Overdue Alert": "Yes" if status.get("overdue_notified") else "—",
+        
+        # Summary charts
+        c1, c2 = st.columns([1, 1])
+        with c1:
+            if "detected_intent" in reply_df.columns:
+                intent_counts = reply_df["detected_intent"].value_counts().reset_index()
+                intent_counts.columns = ["Intent Category", "Emails Sent"]
+                
+                if HAS_PLOTLY:
+                    fig = px.bar(intent_counts, x="Intent Category", y="Emails Sent", 
+                                 title="Auto-Replies sent by Intent Category",
+                                 color="Intent Category", color_discrete_sequence=px.colors.qualitative.Antique)
+                    fig.update_layout(
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        font_color='#9898a6',
+                        title_font_color='#ffffff',
+                        showlegend=False,
+                        xaxis=dict(showgrid=False, linecolor='rgba(255,255,255,0.05)'),
+                        yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)', linecolor='rgba(255,255,255,0.05)'),
+                        margin=dict(l=40, r=40, t=40, b=40)
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                else:
+                    st.bar_chart(reply_df["detected_intent"].value_counts())
+            else:
+                st.info("No intents mapped.")
+                
+        with c2:
+            if "channel" in reply_df.columns:
+                ch_counts = reply_df["channel"].value_counts().reset_index()
+                ch_counts.columns = ["Channel", "Volume"]
+                if HAS_PLOTLY:
+                    fig = px.pie(ch_counts, names="Channel", values="Volume", 
+                                 title="Replies Distribution by Channel Source",
+                                 color_discrete_sequence=px.colors.qualitative.Safe)
+                    fig.update_layout(
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        font_color='#9898a6',
+                        title_font_color='#ffffff',
+                        margin=dict(l=40, r=40, t=40, b=40)
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                else:
+                    st.bar_chart(reply_df["channel"].value_counts())
+                    
+        # Table of sent replies
+        st.markdown("---")
+        st.subheader("Sent Reply Logs")
+        show_cols = [c for c in ["lead_id", "customer_name", "customer_email", "reply_subject", "detected_intent", "replied_at"] if c in reply_df.columns]
+        st.dataframe(reply_df[show_cols], use_container_width=True)
+        
+        # Awaiting human follow-up tracker list
+        st.markdown("---")
+        st.subheader("⌛ Overdue Human Follow-Up Checklist (Awaiting Sales Action)")
+        
+        if followup_status:
+            fu_items = []
+            for lid, info in followup_status.items():
+                if isinstance(info, dict):
+                    fu_items.append({
+                        "lead_id": lid,
+                        "customer_name": info.get("customer_name", ""),
+                        "customer_email": info.get("customer_email", ""),
+                        "auto_replied_at": info.get("auto_replied_at", "—"),
+                        "human_follow_up": "✅ Done" if info.get("human_followed_up") else "⌛ Pending Sales Rep",
+                        "alert_escalated": "🔥 Overdue Alert" if info.get("overdue_notified") else "—"
                     })
-            if fu_data:
-                st.dataframe(pd.DataFrame(fu_data), use_container_width=True, height=300)
-    else:
-        render_empty_state("📭", "No auto-replies sent yet", "Run the inbox monitor to start sending smart replies.")
+                    
+            fu_df = pd.DataFrame(fu_items)
+            
+            # Action controls to mark follow-up complete
+            pending_leads = [item["lead_id"] for item in fu_items if "Pending" in item["human_follow_up"]]
+            
+            if pending_leads:
+                col_sel, col_act = st.columns([2, 1])
+                with col_sel:
+                    action_id = st.selectbox("Resolve Pipeline Status: Mark Lead as Followed-up by Human", ["-- Select --"] + pending_leads)
+                with col_act:
+                    st.markdown("<div style='margin-top:1.75rem;'></div>", unsafe_allow_html=True)
+                    if st.button("Complete Human Action", use_container_width=True) and action_id != "-- Select --":
+                        followup_status[action_id]["human_followed_up"] = True
+                        followup_status[action_id]["human_followed_up_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        
+                        # Save
+                        with open(FOLLOWUP_LOG, "w") as f:
+                            json.dump(followup_status, f, indent=2, default=str)
+                        st.success(f"Lead {action_id} successfully marked as resolved!")
+                        st.rerun()
+            
+            st.dataframe(fu_df, use_container_width=True)
+        else:
+            st.info("No leads awaiting manual sales follow-up.")
+            
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════
-# PAGE: Notifications
+# PAGE: ML Analytics Playground
 # ══════════════════════════════════════════════════════════
-elif page == "Notifications":
-    st.markdown('<div class="section-header">Notifications</div>', unsafe_allow_html=True)
-
-    notifs = load_json(NOTIF_LOG)
-    unread = [n for n in notifs if not n.get("read", False)]
-
-    if unread:
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            alert_text = "alerts" if len(unread) > 1 else "alert"
-            st.markdown(f"**{len(unread)} unread {alert_text}**")
-        with col2:
-            if st.button("Mark all read", use_container_width=True):
-                for n in notifs:
-                    n["read"] = True
-                with open(NOTIF_LOG, "w") as f:
-                    json.dump(notifs, f, indent=2, default=str)
-                st.rerun()
-
-        for i, n in enumerate(reversed(notifs)):
-            if not n.get("read", False):
-                ntype = n.get("type", "info")
-                css_class = "auto-reply" if ntype == "auto_reply" else (
-                    "overdue" if ntype == "overdue" else "")
-                icon = "🆕" if ntype == "new_lead" else (
-                    "✅" if ntype == "auto_reply" else (
-                    "⚠️" if ntype == "overdue" else "ℹ️"))
-
-                st.markdown(f"""<div class="notif-card {css_class}">
-                    <div class="notif-title">{icon} {n.get('title', '')}</div>
-                    <div class="notif-time">{n.get('timestamp', '')}</div>
-                    <div class="notif-message">{n.get('message', '')}</div>
-                </div>""", unsafe_allow_html=True)
-    else:
-        render_empty_state("✅", "All caught up", "No unread notifications.")
-
-# ══════════════════════════════════════════════════════════
-# PAGE: Model Performance
-# ══════════════════════════════════════════════════════════
-elif page == "Model Performance":
-    data_source = "Merged (13,740 rows)" if os.path.exists(MERGED_DATA) else "Synthetic (500 rows)"
-    st.markdown(f'<div class="section-header">Model Performance — {data_source}</div>', unsafe_allow_html=True)
-
-    # Load metrics
+elif page == "ML Analytics Playground":
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    st.subheader("🧠 Machine Learning Model Performance Metrics")
+    
+    # Accuracy details parsing
     acc, f1, prec, rec = 0.82, 0.59, 0.68, 0.52
     if os.path.exists(REPORT):
-        with open(REPORT) as f:
-            for line in f.read().split("\n"):
-                parts = line.split()
-                if len(parts) >= 5 and parts[0] == "accuracy":
-                    acc = float(parts[1])
-                if len(parts) >= 5 and parts[0] == "Missed":
-                    prec, rec, f1 = float(parts[1]), float(parts[2]), float(parts[3])
-
-    # Metrics with consistent styling
-    m1, m2, m3, m4 = st.columns(4)
-    with m1:
-        st.metric("Accuracy", f"{acc:.0%}")
-    with m2:
-        st.metric("Missed F1", f"{f1:.3f}")
-    with m3:
-        st.metric("Missed Precision", f"{prec:.3f}")
-    with m4:
-        st.metric("Missed Recall", f"{rec:.3f}")
-
-    # Model comparison
+        try:
+            with open(REPORT) as f:
+                for line in f.read().split("\n"):
+                    parts = line.split()
+                    if len(parts) >= 5 and parts[0] == "accuracy":
+                        acc = float(parts[1])
+                    if len(parts) >= 5 and parts[0] == "Missed":
+                        prec, rec, f1 = float(parts[1]), float(parts[2]), float(parts[3])
+        except Exception:
+            pass
+            
+    # Model KPIs
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        st.metric("Ensemble Accuracy", f"{acc:.1%}")
+    with c2:
+        st.metric("F1 Score (Missed Leads)", f"{f1:.3f}")
+    with c3:
+        st.metric("Precision (Missed Leads)", f"{prec:.3f}")
+    with c4:
+        st.metric("Recall (Missed Leads)", f"{rec:.3f}")
+        
+    # Model Comparison Plotly Chart
+    st.markdown("---")
+    st.subheader("🏆 Model ROC-AUC Score Comparisons")
     if os.path.exists(MODEL_CMP):
-        with open(MODEL_CMP) as f:
-            mc = json.load(f)
-        if mc.get("models"):
-            st.markdown('<div class="section-header">Model Comparison</div>', unsafe_allow_html=True)
-            rows = [{"Model": n, "AUC": info["auc"]}
-                   for n, info in sorted(mc["models"].items(),
-                                         key=lambda x: x[1]["auc"], reverse=True)]
-            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-
-    # Charts
-    st.markdown('<div class="section-header">Visualizations</div>', unsafe_allow_html=True)
-    col1, col2 = st.columns(2)
-    with col1:
-        if os.path.exists(CM_IMG):
-            from PIL import Image
-            st.image(Image.open(CM_IMG), caption="Confusion Matrix", use_container_width=True)
-    with col2:
-        if os.path.exists(FI_IMG):
-            from PIL import Image
-            st.image(Image.open(FI_IMG), caption="Feature Importance", use_container_width=True)
-
-    if os.path.exists(REPORT):
-        with open(REPORT) as f:
-            st.code(f.read(), language="text")
-
-    # Tuning
-    if os.path.exists(CMP_CHART):
-        st.markdown('<div class="section-header">Before/After Tuning</div>', unsafe_allow_html=True)
-        from PIL import Image
-        st.image(Image.open(CMP_CHART), use_container_width=True)
-
+        try:
+            with open(MODEL_CMP) as f:
+                mc_data = json.load(f)
+                
+            if mc_data.get("models"):
+                rows = [{"Model": k, "Test AUC": v["auc"]} for k, v in mc_data["models"].items()]
+                compare_df = pd.DataFrame(rows).sort_values("Test AUC", ascending=True)
+                
+                if HAS_PLOTLY:
+                    fig = px.bar(compare_df, y="Model", x="Test AUC", orientation="h",
+                                 title="ROC-AUC scores for 8 Models (Higher is better)",
+                                 color="Test AUC", color_continuous_scale="Viridis")
+                    fig.update_layout(
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        font_color='#9898a6',
+                        title_font_color='#ffffff',
+                        xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)', linecolor='rgba(255,255,255,0.05)'),
+                        yaxis=dict(showgrid=False, linecolor='rgba(255,255,255,0.05)'),
+                        margin=dict(l=40, r=40, t=40, b=40),
+                        coloraxis_showscale=False
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                else:
+                    st.dataframe(compare_df)
+        except Exception as e:
+            st.error(f"Error loading model comparison data: {e}")
+            
+    # Optuna tuning hyperparams
+    st.markdown("---")
+    st.subheader("⚙️ Optuna Hyperparameter Optimization Details")
+    
     if os.path.exists(XGB_TUNING):
-        with open(XGB_TUNING) as f:
-            tuning = json.load(f)
-        if tuning.get("best_params"):
-            st.markdown('<div class="section-header">XGBoost Tuned Hyperparameters</div>', unsafe_allow_html=True)
-            st.json(tuning["best_params"])
-
-# ══════════════════════════════════════════════════════════
-# PAGE: Settings
-# ══════════════════════════════════════════════════════════
-elif page == "Settings":
-    st.markdown('<div class="section-header">System Settings</div>', unsafe_allow_html=True)
-
-    st.markdown("Connection Status")
-    live = is_live_configured()
-    if live:
-        st.success("Gmail IMAP/SMTP configured")
+        try:
+            with open(XGB_TUNING) as f:
+                tuning_res = json.load(f)
+                
+            tc1, tc2 = st.columns([1, 1])
+            with tc1:
+                st.markdown(f"**Optimization Target:** XGBoost Classifier")
+                st.markdown(f"**Dataset Used:** `{tuning_res.get('dataset', 'leads_merged.csv')}`")
+                st.markdown(f"**Samples Ingested:** `{tuning_res.get('n_samples', '13,740')}`")
+                st.markdown(f"**Cross-Validation Trials Completed:** `{tuning_res.get('n_trials', '100')}`")
+                st.markdown(f"**Best Cross-Validation AUC:** `{tuning_res.get('best_auc', '—')}`")
+                st.markdown(f"**Tuned Test AUC Score:** `{tuning_res.get('test_auc', '—')}`")
+            with tc2:
+                st.markdown("**Best Hyperparameters Found:**")
+                st.json(tuning_res.get("best_params", {}))
+        except Exception:
+            st.info("Tuning parameters logs not found or unreadable.")
     else:
-        st.warning("Gmail not configured. Set SMTP_USER and SMTP_PASS env vars.")
+        st.info("Optuna tuning parameters not generated.")
 
-    st.markdown("How It Works")
-    st.markdown("""
-    1. **Inbox Monitor** scans Gmail every 5 minutes (via GitHub Actions)
-    2. **ML Model** scores each email for missed-lead probability
-    3. **Smart Reply Engine** generates a human-like reply based on detected intent
-    4. **Auto-Reply** is sent — client cannot tell it's automated
-    5. **Notifications** alert the sales team via email + dashboard + desktop
-    6. **Follow-Up Tracker** flags leads that need human attention
-    """)
+    # Deep learning charts fallback/display
+    st.markdown("---")
+    st.subheader("📈 Deep Learning (PyTorch) & Diagnostic Charts")
+    
+    chart_tabs = st.tabs(["Confusion Matrix", "Feature Importance", "Neural Network Loss & AUC Curves", "ROC Curve"])
+    
+    with chart_tabs[0]:
+        if os.path.exists(CM_IMG) and HAS_PIL:
+            st.image(Image.open(CM_IMG), use_container_width=True, caption="Model Confusion Matrix")
+        else:
+            st.info("No confusion matrix chart saved.")
+            
+    with chart_tabs[1]:
+        if os.path.exists(FI_IMG) and HAS_PIL:
+            st.image(Image.open(FI_IMG), use_container_width=True, caption="Model Random Forest Feature Importances")
+        else:
+            st.info("No feature importance chart saved.")
+            
+    with chart_tabs[2]:
+        if os.path.exists(DL_HIST) and HAS_PIL:
+            st.image(Image.open(DL_HIST), use_container_width=True, caption="PyTorch DL Classification Epochs Loss History")
+        else:
+            st.info("No deep learning loss history charts saved.")
+            
+    with chart_tabs[3]:
+        if os.path.exists(DL_ROC) and HAS_PIL:
+            st.image(Image.open(DL_ROC), use_container_width=True, caption="Receiver Operating Characteristic Curve")
+        else:
+            st.info("No ROC curves saved.")
 
-    st.markdown("Environment Variables")
-    env_vars = {
-        "SMTP_USER": os.getenv("SMTP_USER", "—"),
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ══════════════════════════════════════════════════════════
+# PAGE: Workflow Settings
+# ══════════════════════════════════════════════════════════
+elif page == "Workflow Settings":
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    st.subheader("⚙️ Workflow Configuration & Business Settings")
+    st.markdown("Update templates, courses, placement rates, and notification boundaries. Changes write immediately to `config_overrides.json` and hot-reload across scripts.")
+    
+    # Save Status
+    save_status = st.empty()
+    
+    # 1. Config form
+    with st.form("settings_form"):
+        sc1, sc2 = st.columns(2)
+        
+        with sc1:
+            st.markdown("#### Business Identity & Signatures")
+            company_name = st.text_input("Company Name", overrides.get("COMPANY_NAME", config.COMPANY_NAME))
+            sender_name = st.text_input("Sender / Signature Name", overrides.get("SENDER_NAME", config.SENDER_NAME))
+            team_phone = st.text_input("Contact Phone Number", overrides.get("TEAM_PHONE", config.TEAM_PHONE))
+            team_email = st.text_input("Contact Email address", overrides.get("TEAM_EMAIL", config.TEAM_EMAIL))
+            website_url = st.text_input("Website URL", overrides.get("WEBSITE_URL", config.WEBSITE_URL))
+            
+            st.markdown("#### Escalation Rules")
+            overdue_hrs = st.number_input("Response Overdue Alert Time (Hours)", value=int(overrides.get("HOURS_BEFORE_OVERDUE", config.HOURS_BEFORE_OVERDUE)), min_value=1)
+            esc_hrs = st.number_input("Escalation Time (Hours)", value=int(overrides.get("HOURS_BEFORE_ESCALATION", config.HOURS_BEFORE_ESCALATION)), min_value=1)
+            
+        with sc2:
+            st.markdown("#### Course Offerings & Placement Highlights")
+            placement_rate = st.text_input("Placement Rate", overrides.get("PLACEMENT_RATE", config.PLACEMENT_RATE))
+            partners = st.text_input("Hiring Partners count", overrides.get("COMPANY_PARTNERS", config.COMPANY_PARTNERS))
+            discount = st.text_area("Discount & Incentives Promo Text", overrides.get("DISCOUNT_INFO", config.DISCOUNT_INFO), height=80)
+            scholarship = st.text_area("Scholarship Information Text", overrides.get("SCHOLARSHIP_INFO", config.SCHOLARSHIP_INFO), height=80)
+            emi_text = st.text_area("EMI details description", overrides.get("EMI_INFO", config.EMI_INFO), height=80)
+            
+            st.markdown("#### Auto-Reply Time Delay Constraints (Seconds)")
+            td1, td2 = st.columns(2)
+            with td1:
+                min_delay = st.number_input("Minimum Delay", value=int(overrides.get("MIN_REPLY_DELAY", config.MIN_REPLY_DELAY)), min_value=1)
+            with td2:
+                max_delay = st.number_input("Maximum Delay", value=int(overrides.get("MAX_REPLY_DELAY", config.MAX_REPLY_DELAY)), min_value=1)
+                
+        st.markdown("#### Email Signature Template Preview")
+        sig_val = overrides.get("EMAIL_SIGNATURE", f"Best regards,\n{sender_name}\n{company_name}\nPhone: {team_phone}\nEmail: {team_email}\nWeb: {website_url}")
+        email_signature = st.text_area("Email Signature Footer Block", sig_val, height=120)
+
+        # Form Submit
+        submitted = st.form_submit_button("Save & Update System Settings", type="primary")
+        
+        if submitted:
+            new_overrides = overrides.copy()
+            new_overrides["COMPANY_NAME"] = company_name
+            new_overrides["SENDER_NAME"] = sender_name
+            new_overrides["TEAM_PHONE"] = team_phone
+            new_overrides["TEAM_EMAIL"] = team_email
+            new_overrides["WEBSITE_URL"] = website_url
+            new_overrides["HOURS_BEFORE_OVERDUE"] = overdue_hrs
+            new_overrides["HOURS_BEFORE_ESCALATION"] = esc_hrs
+            new_overrides["PLACEMENT_RATE"] = placement_rate
+            new_overrides["COMPANY_PARTNERS"] = partners
+            new_overrides["DISCOUNT_INFO"] = discount
+            new_overrides["SCHOLARSHIP_INFO"] = scholarship
+            new_overrides["EMI_INFO"] = emi_text
+            new_overrides["MIN_REPLY_DELAY"] = min_delay
+            new_overrides["MAX_REPLY_DELAY"] = max_delay
+            new_overrides["EMAIL_SIGNATURE"] = email_signature
+            
+            save_overrides(new_overrides)
+            save_status.success("Workflow configurations successfully updated & saved!")
+            st.rerun()
+            
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Environment configs checklist panel
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    st.subheader("🔒 Environment Variables Configurations Status")
+    
+    env_list = {
+        "SMTP_USER": os.getenv("SMTP_USER", ""),
         "SMTP_HOST": os.getenv("SMTP_HOST", "smtp.gmail.com"),
-        "IMAP_USER": os.getenv("IMAP_USER", "—"),
-        "NOTIFY_EMAIL": os.getenv("NOTIFY_EMAIL", "—"),
-        "SENDER_NAME": os.getenv("SENDER_NAME", "Sales Team"),
-        "COMPANY_NAME": os.getenv("COMPANY_NAME", "Our Company"),
+        "IMAP_USER": os.getenv("IMAP_USER", ""),
+        "NOTIFY_EMAIL": os.getenv("NOTIFY_EMAIL", ""),
+        "SENDER_NAME": os.getenv("SENDER_NAME", "")
     }
-    for k, v in env_vars.items():
-        masked = v[:4] + "****" if len(str(v)) > 4 and k.endswith("_PASS") else v
-        st.code(f"{k} = {masked}")
+    
+    for key, val in env_list.items():
+        val_str = "❌ Not Set" if not val else ("✅ Configured (Hidden)" if key.endswith("PASS") or key == "SMTP_USER" else f"✅ {val}")
+        st.markdown(f"**{key}:** `{val_str}`")
+        
+    st.markdown("</div>", unsafe_allow_html=True)
 
-# ── Footer ─────────────────────────────────────────────────
-st.markdown(f"""
-<div class="footer">
-    Missed-Lead Detector · Automated Inbox Monitoring &amp; Follow-Up · Last scan: {datetime.now().strftime('%Y-%m-%d %H:%M')}
+# ── Footer Section ─────────────────────────────────────────
+st.markdown("""
+<div class="app-footer">
+    Missed-Lead Detector &bull; Customer Retention Sales Command Center &bull; Cit Chennai Batch 2025-27
 </div>
 """, unsafe_allow_html=True)
