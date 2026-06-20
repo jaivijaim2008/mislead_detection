@@ -1,0 +1,83 @@
+[
+  {
+    "type": "new_lead",
+    "title": "New Missed Lead: Priya Sharma",
+    "message": "A new missed lead was detected!\n\nCustomer: Priya Sharma <priya@gmail.com>\nResponse Gap: 48.5 hours\nMissed Probability: 87%\n\nAn auto-reply has been sent. Please follow up personally.",
+    "customer_name": "Priya Sharma",
+    "lead_id": "",
+    "timestamp": "2026-06-20 23:29:55",
+    "read": false
+  },
+  {
+    "type": "auto_reply",
+    "title": "Auto-Reply Sent: Priya Sharma",
+    "message": "An auto-reply was sent to Priya Sharma.\n\nCustomer: Priya Sharma <priya@gmail.com>\nDetected Intent: pricing\n\nThe reply appears as a manual response. Please monitor for replies.",
+    "customer_name": "Priya Sharma",
+    "lead_id": "",
+    "timestamp": "2026-06-20 23:29:55",
+    "read": false
+  },
+  {
+    "type": "overdue",
+    "title": "OVERDUE: Rahul Patel \u2014 no human follow-up!",
+    "message": "\u26a0\ufe0f Rahul Patel has not received a human follow-up!\n\nCustomer: Rahul Patel <rahul@outlook.com>\nHours since auto-reply: 36h\n\nPlease follow up immediately!",
+    "customer_name": "Rahul Patel",
+    "lead_id": "",
+    "timestamp": "2026-06-20 23:29:55",
+    "read": false
+  },
+  {
+    "type": "new_lead",
+    "title": "New Missed Lead: Priya Sharma",
+    "message": "A new missed lead was detected!\n\nCustomer: Priya Sharma <priya@gmail.com>\nResponse Gap: 48.5 hours\nMissed Probability: 87%\n\nAn auto-reply has been sent. Please follow up personally.",
+    "customer_name": "Priya Sharma",
+    "lead_id": "",
+    "timestamp": "2026-06-20 23:30:28",
+    "read": false
+  },
+  {
+    "type": "auto_reply",
+    "title": "Auto-Reply Sent: Priya Sharma",
+    "message": "An auto-reply was sent to Priya Sharma.\n\nCustomer: Priya Sharma <priya@gmail.com>\nDetected Intent: pricing\n\nThe reply appears as a manual response. Please monitor for replies.",
+    "customer_name": "Priya Sharma",
+    "lead_id": "",
+    "timestamp": "2026-06-20 23:30:28",
+    "read": false
+  },
+  {
+    "type": "overdue",
+    "title": "OVERDUE: Rahul Patel \u2014 no human follow-up!",
+    "message": "\u26a0\ufe0f Rahul Patel has not received a human follow-up!\n\nCustomer: Rahul Patel <rahul@outlook.com>\nHours since auto-reply: 36h\n\nPlease follow up immediately!",
+    "customer_name": "Rahul Patel",
+    "lead_id": "",
+    "timestamp": "2026-06-20 23:30:28",
+    "read": false
+  },
+  {
+    "type": "new_lead",
+    "title": "New Missed Lead: Test User",
+    "message": "A new missed lead was detected!\n\nCustomer: Test User <test@test.com>\nResponse Gap: 48.0 hours\nMissed Probability: 85%\n\nAn auto-reply has been sent. Please follow up personally.",
+    "customer_name": "Test User",
+    "lead_id": "",
+    "timestamp": "2026-06-20 23:33:28",
+    "read": false
+  },
+  {
+    "type": "auto_reply",
+    "title": "Auto-Reply Sent: Test User",
+    "message": "An auto-reply was sent to Test User.\n\nCustomer: Test User <test@test.com>\nDetected Intent: pricing\n\nThe reply appears as a manual response. Please monitor for replies.",
+    "customer_name": "Test User",
+    "lead_id": "",
+    "timestamp": "2026-06-20 23:33:28",
+    "read": false
+  },
+  {
+    "type": "new_lead",
+    "title": "New Missed Lead: Test User",
+    "message": "A new missed lead was detected!\n\nCustomer: Test User <test@test.com>\nResponse Gap: 48.0 hours\nMissed Probability: 85%\n\nAn auto-reply has been sent. Please follow up personally.",
+    "customer_name": "Test User",
+    "lead_id": "",
+    "timestamp": "2026-06-20 23:34:22",
+    "read": false
+  }
+]

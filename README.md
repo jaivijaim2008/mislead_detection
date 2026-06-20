@@ -1,6 +1,6 @@
 # Missed-Lead Detector
 
-AI-Powered Missed-Lead Detection & Automated Follow-Up System.
+Automated inbox monitoring, smart replies & follow-up management for sales teams.
 
 ## Live Demo
 
@@ -8,15 +8,26 @@ AI-Powered Missed-Lead Detection & Automated Follow-Up System.
 
 ## Overview
 
-A machine learning system that automatically identifies "missed leads" — customers who expressed interest but did not receive a timely response — and triggers automated follow-up emails.
+A production-ready system that monitors your Gmail inbox, detects missed leads using ML, automatically sends human-like replies (clients cannot tell it is automated), and alerts the sales team when follow-ups are overdue.
+
+### How It Works
+
+1. **Inbox Monitor** scans Gmail every 10 minutes (via GitHub Actions)
+2. **ML Model** scores each email for missed-lead probability (AUC 0.9794)
+3. **Smart Reply Engine** detects intent and generates a contextual, human-like reply
+4. **Auto-Reply** is sent via SMTP — the client sees a normal manual response
+5. **Notifications** alert the sales team via email + dashboard + desktop popups
+6. **Follow-Up Tracker** flags leads needing human attention after 24 hours
 
 ### Features
 
-- **Live Gmail Integration** — Fetches real emails via IMAP, filters newsletters/promotions
+- **Smart Auto-Replies** — Intent-aware templates that read naturally; clients cannot tell they are automated
+- **Live Gmail Integration** — IMAP fetch + SMTP threaded replies, filters newsletters/promotions
 - **ML + Deep Learning** — 8 models including Optuna-tuned XGBoost (AUC 0.9794) and PyTorch neural network
-- **Auto Follow-Up** — Sends threaded follow-up emails via SMTP
-- **Interactive Dashboard** — Streamlit UI with real-time pipeline controls
-- **Kaggle Data** — Trained on 13,740 real-world samples (X Education + Customer Support + Synthetic)
+- **Multi-Channel Notifications** — Email alerts + Streamlit dashboard + desktop popups
+- **Follow-Up Tracking** — Auto-detects when sales team has not followed up within 24h
+- **Sales Team Dashboard** — Clean command center showing all leads, replies, and alerts
+- **GitHub Actions Scheduling** — Runs automatically every 10 minutes
 
 ## Quick Start
 
@@ -26,7 +37,8 @@ A machine learning system that automatically identifies "missed leads" — custo
 2. Go to [share.streamlit.io](https://share.streamlit.io)
 3. Connect your GitHub repo
 4. Set the main file path: `missed_lead_detector/src/dashboard.py`
-5. Click "Deploy"
+5. Set secrets (SMTP_USER, SMTP_PASS, IMAP_USER, IMAP_PASS)
+6. Click "Deploy"
 
 ### Local
 
@@ -35,21 +47,31 @@ pip install -r requirements.txt
 streamlit run src/dashboard.py
 ```
 
+### Run Inbox Monitor
+
+```bash
+# Single scan
+python src/inbox_monitor.py
+
+# Continuous monitoring (every 5 min)
+python src/inbox_monitor.py --loop 300
+
+# Dry run (no emails sent)
+python src/inbox_monitor.py --dry-run
+```
+
 ## Architecture
 
 ```
-GMAIL INBOX (IMAP) → FILTER NEWSLETTERS → FEATURE ENGINEERING
+GMAIL INBOX (IMAP) → FILTER NEWSLETTERS → ML SCORING
         ↓
-ML PIPELINE (LR, NB, DT, RF, XGBoost, Ensemble, K-Means)
+Smart Reply Engine (intent detection + templates)
         ↓
-DEEP LEARNING (PyTorch GPU — ResNet with BatchNorm + Residual Blocks)
+Auto-Reply via SMTP (threaded, human-like)
         ↓
-GRAND ENSEMBLE (50% ML + 50% DL)
+Notifications (email + dashboard + desktop)
         ↓
-INFERENCE: missed_probability ≥ 0.50 → MISSED LEAD
-        ↓                        ↓
-auto_followup.py      employee_reminder.py
-(SMTP threaded email)  (repeating popup)
+Follow-Up Tracker (flags overdue leads after 24h)
 ```
 
 ## Model Performance
