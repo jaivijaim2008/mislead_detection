@@ -344,6 +344,9 @@ def generate_reply(customer_name: str, customer_email: str,
     # Build dynamic values from config
     batch_info = f"Weekday: {BATCH_SCHEDULES.get('weekday', 'TBD')}, Weekend: {BATCH_SCHEDULES.get('weekend', 'TBD')}"
 
+    # Reserved for user-customized templates: these placeholders are available
+    # even if current templates don't use them all yet. Edit templates above
+    # to include {team_email}, {website}, {course_list}, {discount_info}, etc.
     body = template["body"].format(
         customer_name=customer_name_val,
         sender_name=SENDER_NAME,
