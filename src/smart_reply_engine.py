@@ -332,13 +332,6 @@ def generate_reply(customer_name: str, customer_email: str,
     reply_subject = subject_template.format(subject=subject)
 
     # Personalize body
-    greeting = random.choice(GREETINGS)
-    time_greet = random.choice(TIME_GREETINGS.get(_time_of_day(), ["Hi"]))
-
-    # Vary the opening slightly
-    if random.random() < 0.3:
-        greeting = time_greet
-
     # Clean up customer name
     if not customer_name or customer_name == "there":
         customer_name_val = "there"

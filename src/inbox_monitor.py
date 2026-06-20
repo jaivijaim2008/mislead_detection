@@ -70,12 +70,13 @@ def load_artefacts():
     return ensemble, scaler
 
 
+# Hardcoded channel encoding (must match training data)
+CHANNEL_MAP = {"email": 0, "phone inquiry": 1, "website chat": 2, "whatsapp": 3}
+
 def score_email(df: pd.DataFrame, ensemble, scaler) -> pd.DataFrame:
     """Score a single email DataFrame using the trained ensemble."""
-    from sklearn.preprocessing import LabelEncoder
-
-    le = LabelEncoder()
-    df["channel_enc"] = le.fit_transform(df["channel"])
+    df["channel_enc"] = df["channel"].apply(
+        lambda c: CHANNEL_MAP.get(str(c).lower(), 0))
 
     intent_words = ["price", "buy", "interested", "demo", "quote", "available"]
     df["intent_score"] = df["message_text"].apply(
@@ -172,8 +173,8 @@ def run_scan(dry_run: bool = False) -> dict:
             print(f"  Intent: {reply['detected_intent']}")
             print(f"  Subject: {reply['reply_subject']}")
         else:
-            # Send the auto-reply
-            success = send_followup(email_payload, force=True)
+            # Send the auto-reply (dedup handled by sent_ids check above)
+            success = send_followup(email_payload)
             if success:
                 replied_count += 1
 
