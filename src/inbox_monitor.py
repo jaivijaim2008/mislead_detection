@@ -272,12 +272,18 @@ def run_loop(interval: int = 300, dry_run: bool = False):
 
 
 if __name__ == "__main__":
+    import traceback
     args = sys.argv[1:]
     dry_run = "--dry-run" in args
 
-    if "--loop" in args:
-        idx = args.index("--loop")
-        interval = int(args[idx + 1]) if idx + 1 < len(args) else 300
-        run_loop(interval=interval, dry_run=dry_run)
-    else:
-        run_scan(dry_run=dry_run)
+    try:
+        if "--loop" in args:
+            idx = args.index("--loop")
+            interval = int(args[idx + 1]) if idx + 1 < len(args) else 300
+            run_loop(interval=interval, dry_run=dry_run)
+        else:
+            run_scan(dry_run=dry_run)
+    except Exception as e:
+        print(f"\n[monitor] FATAL ERROR: {e}")
+        traceback.print_exc()
+        sys.exit(1)
