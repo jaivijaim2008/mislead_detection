@@ -1,0 +1,40 @@
+name: Daily Digest
+
+on:
+  schedule:
+    - cron: '0 8 * * *'  # Every day at 8 AM UTC
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements-ci.txt
+
+      - name: Send daily digest
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
+          SENDER_NAME: ${{ secrets.SENDER_NAME }}
+          COMPANY_NAME: ${{ secrets.COMPANY_NAME }}
+        run: |
+          set -e
+          python src/daily_digest.py
+
+      - name: Upload digest logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-digest-logs
+          path: logs/
+          retention-days: 7
