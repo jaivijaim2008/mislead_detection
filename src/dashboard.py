@@ -711,7 +711,8 @@ elif page == "Lead Explorer":
         with c3:
             q_intent = st.selectbox("High Intent Only", ["All", "Yes", "No"])
         with c4:
-            q_channel = st.selectbox("Channel Source", ["All"] + list(scored["channel"].unique()))
+            channels = list(scored["channel"].unique()) if "channel" in scored.columns else ["Gmail"]
+            q_channel = st.selectbox("Channel Source", ["All"] + channels)
             
         # Querying leads
         filtered = scored.copy()
@@ -737,12 +738,14 @@ elif page == "Lead Explorer":
             filtered = filtered[filtered["high_intent_flag"] == val]
             
         if q_channel != "All":
-            filtered = filtered[filtered["channel"] == q_channel]
+            if "channel" in filtered.columns:
+                filtered = filtered[filtered["channel"] == q_channel]
             
         # Selected column subset
         if has_gmail_headers:
             show_cols = ["lead_id", "_customer_name", "_customer_email", "_subject", "channel", 
                          "response_gap_hrs", "high_intent_flag", "missed_probability", "predicted_missed"]
+            show_cols = [c for c in show_cols if c in filtered.columns]
             rename_map = {
                 "lead_id": "Lead ID",
                 "_customer_name": "Customer",
@@ -757,6 +760,7 @@ elif page == "Lead Explorer":
         else:
             show_cols = ["lead_id", "channel", "message_text", "response_gap_hrs", 
                          "high_intent_flag", "missed_probability", "predicted_missed"]
+            show_cols = [c for c in show_cols if c in filtered.columns]
             rename_map = {
                 "lead_id": "Lead ID",
                 "channel": "Source",
