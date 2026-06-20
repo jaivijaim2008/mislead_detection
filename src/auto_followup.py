@@ -72,7 +72,7 @@ def _build_email(lead: dict) -> MIMEMultipart:
          <strong>{SENDER_NAME}</strong></p>
       <hr style="border:none;border-top:1px solid #eee;margin-top:2em">
       <p style="font-size:11px;color:#999">
-        This email was sent by the {SENDER_NAME}.
+        This email was sent by {SENDER_NAME}.
       </p>
     </body></html>"""
 
