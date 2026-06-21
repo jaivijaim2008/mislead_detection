@@ -57,7 +57,6 @@ import config
 # ── Page Config ────────────────────────────────────────────
 st.set_page_config(
     page_title="Missed-Lead Command Center",
-    page_icon="🎯",
     layout="wide",
     initial_sidebar_state="expanded"
 )
