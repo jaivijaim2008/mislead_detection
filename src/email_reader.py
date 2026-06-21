@@ -294,16 +294,12 @@ def fetch_customer_emails(max_emails: int = 50,
         print(f"[email_reader] Connection error: {e}")
         return pd.DataFrame()
 
-    # Select "All Mail" (includes INBOX + Sent + Archive) so we catch
-    # self-sent test emails that Gmail routes to [Gmail]/Sent Mail.
-    status, _ = mail.select("[Gmail]/All Mail")
+    # Select inbox
+    status, _ = mail.select("INBOX")
     if status != "OK":
-        # Fallback to INBOX if All Mail is unavailable (e.g. non-Gmail IMAP)
-        status, _ = mail.select("INBOX")
-        if status != "OK":
-            print(f"[email_reader] Could not select any folder (status={status})")
-            mail.logout()
-            return pd.DataFrame()
+        print(f"[email_reader] Could not select INBOX (status={status})")
+        mail.logout()
+        return pd.DataFrame()
 
     # Search for messages from the last N days
     if search_since_days > 0:
