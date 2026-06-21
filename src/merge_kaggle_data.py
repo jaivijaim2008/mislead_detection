@@ -226,7 +226,16 @@ def merge_all():
     """Merge all three datasets into unified training data."""
     # Load original synthetic data
     synthetic_path = os.path.join(DATA_DIR, "leads.csv")
-    df_synth = pd.read_csv(synthetic_path)
+    if not os.path.exists(synthetic_path):
+        print(f"[merge] No synthetic data found at {synthetic_path}")
+        print("[merge] Run generate_data.py first, or run this script standalone to merge only Kaggle datasets.")
+        df_synth = pd.DataFrame(columns=[
+            "lead_id", "channel", "message_text", "message_hour",
+            "message_length", "high_intent_flag", "prev_contacts",
+            "response_gap_hrs", "replied"
+        ])
+    else:
+        df_synth = pd.read_csv(synthetic_path)
     print(f"[merge] Original synthetic data: {len(df_synth)} rows")
 
     # Load and map Kaggle datasets

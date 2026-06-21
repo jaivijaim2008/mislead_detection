@@ -19,6 +19,17 @@ secrets.toml
 # Logs & runtime data
 logs/
 
+# Generated data & outputs (only real inbox data should be committed)
+data/*.csv
+data/*.json
+outputs/*.csv
+outputs/*.png
+outputs/*.txt
+outputs/*.json
+outputs/eda/
+outputs/dl_*
+!outputs/system_architecture.png
+
 # Large model files (too big for git)
 models/*.pt
 models/*.pkl

@@ -48,7 +48,6 @@ DL_CM     = os.path.join(BASE, "..", "outputs", "dl_confusion_matrix.png")
 DL_ROC    = os.path.join(BASE, "..", "outputs", "dl_roc_curve.png")
 CMP_CHART = os.path.join(BASE, "..", "outputs", "model_comparison_chart.png")
 XGB_TUNING = os.path.join(BASE, "..", "outputs", "xgb_tuning_results.json")
-MERGED_DATA = os.path.join(BASE, "..", "data", "leads_merged.csv")
 OVERRIDES_PATH = os.path.join(BASE, "..", "logs", "config_overrides.json")
 
 # Import config constants directly for default previewing
@@ -459,7 +458,7 @@ def is_live_mode() -> bool:
 
 # ── Header Section ─────────────────────────────────────────
 live_connected = is_live_mode()
-status_label = "Live Pipeline Connected" if live_connected else "Demo Mode — Synthetic Sandbox"
+status_label = "Gmail Connected — Live Data" if live_connected else "Gmail Not Connected"
 status_class = "badge-live" if live_connected else "badge-demo"
 
 st.markdown(f"""
@@ -489,10 +488,10 @@ with st.sidebar:
     notifs = load_json_log(NOTIF_LOG)
     unread_notifs = [n for n in notifs if not n.get("read", False)] if isinstance(notifs, list) else []
 
-    inbox_icon = "🟢" if live_connected else "🟡"
+    inbox_icon = "🟢" if live_connected else "🔴"
     st.markdown(f"""
     <div class="sidebar-status">
-        <div><b>Gmail Connection</b>: {inbox_icon} {'Active' if live_connected else 'Simulated'}</div>
+        <div><b>Gmail Connection</b>: {inbox_icon} {'Active' if live_connected else 'Not Connected'}</div>
         <div><b>Total Scored</b>: {len(leads_df)} leads</div>
         <div><b>Unread Alerts</b>: <span style="color: {'#f87171' if len(unread_notifs) > 0 else '#7d8590'}; font-weight: bold;">{len(unread_notifs)}</span></div>
     </div>
@@ -519,6 +518,31 @@ if page == "Command Center":
                             if isinstance(s, dict) and s.get("auto_replied") and not s.get("human_followed_up"))
 
     high_intent = int(scored["high_intent_flag"].sum()) if "high_intent_flag" in scored.columns and total_leads > 0 else 0
+
+    # ── Empty state when no data exists ───────────────────
+    if total_leads == 0:
+        st.markdown(f"""
+        <div class="glass-card" style="text-align:center; padding: 3rem 2rem;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📬</div>
+            <h2 style="color: #e6edf3; margin-bottom: 0.5rem;">No Inbox Data Yet</h2>
+            <p style="color: #7d8590; font-size: 1rem; max-width: 520px; margin: 0 auto;">
+                Connect your Gmail account to start scanning real customer emails.<br>
+                The system will detect missed leads, score them with ML, and auto-reply.
+            </p>
+            <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(22,27,34,0.5); border-radius: 10px; border: 1px solid rgba(88,166,255,0.08); max-width: 550px; margin-left: auto; margin-right: auto; text-align: left;">
+                <p style="color: #fbbf24; font-weight: 600; margin-bottom: 0.5rem;">⚡ Setup Steps:</p>
+                <p style="color: #7d8590; font-size: 0.85rem; line-height: 1.8;">
+                    1. Enable 2FA on your Gmail and generate an App Password<br>
+                    2. Add these to Streamlit Cloud secrets:<br>
+                    &nbsp;&nbsp;&nbsp;• <code style="color:#38bdf8;">IMAP_USER</code> = your Gmail address<br>
+                    &nbsp;&nbsp;&nbsp;• <code style="color:#38bdf8;">IMAP_PASS</code> = your App Password<br>
+                    &nbsp;&nbsp;&nbsp;• <code style="color:#38bdf8;">SMTP_USER</code> = your Gmail address<br>
+                    &nbsp;&nbsp;&nbsp;• <code style="color:#38bdf8;">SMTP_PASS</code> = your App Password<br>
+                    3. Click "Trigger Scan Now" below to fetch real emails
+                </p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     # ── KPI Row ────────────────────────────────────────────
     st.markdown(f"""
@@ -577,6 +601,8 @@ if page == "Command Center":
                     st.rerun()
                 except Exception as e:
                     st.error(f"Execution Error: {e}")
+        elif not live_connected:
+            st.warning("⚠️ Gmail not connected. Set IMAP_USER and IMAP_PASS in Streamlit secrets to enable live scanning.")
         else:
             st.markdown("<p style='color: #7d8590; font-style: italic; margin-top:0.5rem;'>Trigger a pipeline scan to read Gmail inboxes, run ML predictions, and execute automatic replies.</p>", unsafe_allow_html=True)
 

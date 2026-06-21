@@ -171,6 +171,10 @@ def run_demo_pipeline():
     print("=" * 60)
     print("  MISSED-LEAD DETECTOR - DEMO PIPELINE (CSV Data)")
     print("=" * 60)
+    if not os.path.exists(DATA):
+        print(f"[pipeline] No sample data found at {DATA}")
+        print("[pipeline] Use --live to scan real Gmail inbox instead.")
+        return
     df = pd.read_csv(DATA)
     print(f"[pipeline] Loaded {len(df)} leads from {DATA}")
     ensemble, scaler, dl_model, dl_scaler = load_artefacts()
