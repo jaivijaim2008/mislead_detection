@@ -30,7 +30,7 @@ WEBSITE_URL  = overrides.get("WEBSITE_URL", os.getenv("WEBSITE_URL", "https://ww
 
 # ── Courses & Programs ─────────────────────────────────────
 # Add or remove courses as needed. These appear in template responses.
-COURSES = [
+COURSES = overrides.get("COURSES", [
     {
         "name": "Data Science & AI",
         "duration": "6 months",
@@ -66,7 +66,7 @@ COURSES = [
         "emi_start": "1,999",
         "highlight": "Recruitment, payroll, labor laws, and HR analytics",
     },
-]
+])
 
 # ── Batch Schedule ─────────────────────────────────────────
 BATCH_SCHEDULES = overrides.get("BATCH_SCHEDULES", {
@@ -113,41 +113,4 @@ Web: {WEBSITE_URL}
 # ── Complaint Response Settings ────────────────────────────
 COMPLAINT_RESOLUTION_TIME = overrides.get("COMPLAINT_RESOLUTION_TIME", "2 hours")
 COMPLAINT_ESCALATION_NOTE = overrides.get("COMPLAINT_ESCALATION_NOTE", "I've already escalated this to our team lead")
-COURSES = overrides.get("COURSES", [
-    {
-        "name": "Data Science & AI",
-        "duration": "6 months",
-        "price": "65,000",
-        "emi_start": "4,999",
-        "highlight": "Includes Python, ML, Deep Learning, and capstone project",
-    },
-    {
-        "name": "Full Stack Development",
-        "duration": "5 months",
-        "price": "55,000",
-        "emi_start": "3,999",
-        "highlight": "React, Node.js, databases, and deployment",
-    },
-    {
-        "name": "Digital Marketing",
-        "duration": "3 months",
-        "price": "25,000",
-        "emi_start": "2,499",
-        "highlight": "SEO, SEM, Social Media, Analytics, and live projects",
-    },
-    {
-        "name": "Business Analytics (MBA Prep)",
-        "duration": "4 months",
-        "price": "45,000",
-        "emi_start": "3,499",
-        "highlight": "Excel, SQL, Tableau, Power BI, and case studies",
-    },
-    {
-        "name": "HR Certification",
-        "duration": "3 months",
-        "price": "22,000",
-        "emi_start": "1,999",
-        "highlight": "Recruitment, payroll, labor laws, and HR analytics",
-    },
-])
 
