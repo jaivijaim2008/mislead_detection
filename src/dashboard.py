@@ -1239,6 +1239,14 @@ elif page == "Workflow Settings":
             overdue_hrs = st.number_input("Overdue Alert (Hours)", value=int(overrides.get("HOURS_BEFORE_OVERDUE", config.HOURS_BEFORE_OVERDUE)), min_value=1)
             esc_hrs = st.number_input("Escalation (Hours)", value=int(overrides.get("HOURS_BEFORE_ESCALATION", config.HOURS_BEFORE_ESCALATION)), min_value=1)
 
+            st.markdown("#### Recovery Rate Alert")
+            recovery_threshold = st.slider(
+                "Alert when recovery rate drops below (%)",
+                min_value=10, max_value=100,
+                value=int(overrides.get("RECOVERY_RATE_THRESHOLD", config.RECOVERY_RATE_THRESHOLD)),
+                help="Email alert is sent when fewer than this % of missed leads are handled."
+            )
+
         with sc2:
             st.markdown("#### Course Offerings")
             placement_rate = st.text_input("Placement Rate", overrides.get("PLACEMENT_RATE", config.PLACEMENT_RATE))
@@ -1266,7 +1274,7 @@ elif page == "Workflow Settings":
                 "COMPANY_NAME": company_name, "SENDER_NAME": sender_name,
                 "TEAM_PHONE": team_phone, "TEAM_EMAIL": team_email,
                 "WEBSITE_URL": website_url, "HOURS_BEFORE_OVERDUE": overdue_hrs,
-                "HOURS_BEFORE_ESCALATION": esc_hrs, "PLACEMENT_RATE": placement_rate,
+                "HOURS_BEFORE_ESCALATION": esc_hrs, "RECOVERY_RATE_THRESHOLD": recovery_threshold, "PLACEMENT_RATE": placement_rate,
                 "COMPANY_PARTNERS": partners, "DISCOUNT_INFO": discount,
                 "SCHOLARSHIP_INFO": scholarship, "EMI_INFO": emi_text,
                 "MIN_REPLY_DELAY": min_delay, "MAX_REPLY_DELAY": max_delay,

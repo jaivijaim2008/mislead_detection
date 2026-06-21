@@ -18,7 +18,8 @@ sys.path.insert(0, os.path.dirname(__file__))
 from email_reader       import fetch_customer_emails
 from smart_reply_engine import generate_reply, detect_intent
 from auto_followup      import send_followup, _load_sent, _save_sent
-from notifications      import notify_new_lead, notify_auto_reply, notify_overdue
+from notifications      import notify_new_lead, notify_auto_reply, notify_overdue, notify_low_recovery_rate
+from config             import RECOVERY_RATE_THRESHOLD
 
 BASE     = os.path.dirname(__file__)
 MODELS   = os.path.join(BASE, "..", "models")
@@ -247,6 +248,43 @@ def run_scan(dry_run: bool = False) -> dict:
         "not_missed": len(not_missed),
         "timestamp": now,
     }
+
+    # 7. Check recovery rate and alert if below threshold
+    # Use all-time followup_status for consistent rate calculation
+    total_missed_all = len(followup_status)
+    handled_count = sum(
+        1 for s in followup_status.values()
+        if isinstance(s, dict) and (s.get("auto_replied") or s.get("human_followed_up"))
+    )
+    recovery_pct = (handled_count / total_missed_all * 100) if total_missed_all > 0 else 100.0
+    if total_missed_all > 0 and recovery_pct < RECOVERY_RATE_THRESHOLD:
+        # Cooldown: only alert once per 6 hours to avoid spam
+        alert_log = os.path.join(LOG_DIR, "recovery_rate_alert.json")
+        last_alert = {}
+        if os.path.exists(alert_log):
+            try:
+                with open(alert_log) as f:
+                    last_alert = json.load(f)
+            except Exception:
+                pass
+        last_ts = last_alert.get("timestamp", "")
+        try:
+            last_dt = datetime.strptime(last_ts, "%Y-%m-%d %H:%M:%S")
+            hours_since = (datetime.now(timezone.utc) -
+                           last_dt.replace(tzinfo=timezone.utc)).total_seconds() / 3600
+        except (ValueError, TypeError):
+            hours_since = 999  # no previous alert
+
+        if hours_since >= 6:
+            notify_low_recovery_rate(
+                current_rate=recovery_pct,
+                threshold=RECOVERY_RATE_THRESHOLD,
+                missed_total=total_missed_all,
+                handled=handled_count,
+            )
+            with open(alert_log, "w") as f:
+                json.dump({"timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                           "rate": recovery_pct}, f, indent=2)
 
     print(f"\n{'='*60}")
     print(f"  SCAN COMPLETE")

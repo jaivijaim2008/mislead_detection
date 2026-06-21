@@ -100,6 +100,10 @@ MAX_REPLY_DELAY = overrides.get("MAX_REPLY_DELAY", 300)
 HOURS_BEFORE_OVERDUE = overrides.get("HOURS_BEFORE_OVERDUE", 24)
 HOURS_BEFORE_ESCALATION = overrides.get("HOURS_BEFORE_ESCALATION", 48)
 
+# ── Recovery Rate Alert ───────────────────────────────────
+# Email alert when recovery rate drops below this %
+RECOVERY_RATE_THRESHOLD = overrides.get("RECOVERY_RATE_THRESHOLD", 50)
+
 # ── Email Signature ────────────────────────────────────────
 EMAIL_SIGNATURE = overrides.get("EMAIL_SIGNATURE", f"""
 Best regards,

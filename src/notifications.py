@@ -193,6 +193,32 @@ def notify_overdue(customer_name: str, customer_email: str,
     print(f"[notifications] OVERDUE alert sent for {customer_name}")
 
 
+def notify_low_recovery_rate(current_rate: float, threshold: float,
+                             missed_total: int, handled: int):
+    """Notify when recovery rate drops below the configured threshold."""
+    title = f"Low Recovery Rate Alert: {current_rate:.0f}%"
+    message = (f"The lead recovery rate has dropped below your configured threshold.\n\n"
+               f"Current Recovery Rate: {current_rate:.1f}%\n"
+               f"Threshold: {threshold:.0f}%\n"
+               f"Missed Leads: {missed_total}\n"
+               f"Handled (auto-reply + follow-up): {handled}\n\n"
+               f"Action needed: Review pending leads and assign follow-ups to the sales team.")
+
+    _add_dashboard_notification("overdue", title, message)
+
+    # Email notification
+    _send_email_notification(
+        NOTIFY_EMAIL,
+        f"[ALERT] Recovery rate dropped to {current_rate:.0f}% — below {threshold:.0f}% threshold",
+        message,
+    )
+
+    # Desktop popup for immediate attention
+    _show_desktop_popup(title, message)
+
+    print(f"[notifications] LOW RECOVERY RATE alert sent ({current_rate:.1f}% < {threshold:.0f}%)")
+
+
 def notify_info(title: str, message: str):
     """Generic info notification."""
     _add_dashboard_notification("info", title, message)
