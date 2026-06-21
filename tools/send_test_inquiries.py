@@ -31,7 +31,7 @@ TEST_INQUIRIES = [
     {
         "from_name": "Rahul Sharma",
         "from_email": "rahul.sharma.test@gmail.com",
-        "subject": "Interested in Data Science Course — Need Pricing",
+        "subject": "[TEST] Interested in Data Science Course — Need Pricing",
         "body": """Hi,
 
 I came across your Data Science course on your website and I'm very interested.
@@ -51,7 +51,7 @@ Rahul Sharma""",
     {
         "from_name": "Priya Patel",
         "from_email": "priya.patel.test@gmail.com",
-        "subject": "Can I get a demo class for ML course?",
+        "subject": "[TEST] Can I get a demo class for ML course?",
         "body": """Hello Team,
 
 I wanted to ask if I can attend a free demo class before enrolling.
@@ -67,7 +67,7 @@ Priya Patel
     {
         "from_name": "Amit Kumar",
         "from_email": "amit.kumar.test@gmail.com",
-        "subject": "Is the next batch starting in July?",
+        "subject": "[TEST] Is the next batch starting in July?",
         "body": """Hi,
 
 I want to enroll in the Full Stack Development course.
@@ -83,7 +83,7 @@ Amit Kumar""",
     {
         "from_name": "Sneha Reddy",
         "from_email": "sneha.reddy.test@gmail.com",
-        "subject": "Scholarship available for women?",
+        "subject": "[TEST] Scholarship available for women?",
         "body": """Dear Sir/Madam,
 
 I'm a final year B.Tech student. I'm interested in your AI & Deep Learning course.
@@ -100,7 +100,7 @@ Sneha Reddy""",
     {
         "from_name": "Vikram Singh",
         "from_email": "vikram.singh.test@gmail.com",
-        "subject": "URGENT — Want to enroll today!",
+        "subject": "[TEST] URGENT — Want to enroll today!",
         "body": """Hello!
 
 I spoke to your sales team yesterday about the Data Analytics course.
@@ -119,7 +119,7 @@ Vikram Singh""",
     {
         "from_name": "Ananya Iyer",
         "from_email": "ananya.iyer.test@gmail.com",
-        "subject": "Course comparison — Data Science vs AI",
+        "subject": "[TEST] Course comparison — Data Science vs AI",
         "body": """Hi,
 
 I'm confused between your Data Science course and AI & Deep Learning course.
@@ -138,7 +138,7 @@ Ananya Iyer""",
     {
         "from_name": "Karthik Menon",
         "from_email": "karthik.menon.test@gmail.com",
-        "subject": "Do you offer corporate training?",
+        "subject": "[TEST] Do you offer corporate training?",
         "body": """Dear Team,
 
 I'm the HR Manager at TechCorp Solutions. We want to upskill our team of 15 developers in Cloud Computing and DevOps.
@@ -156,7 +156,7 @@ HR Manager, TechCorp Solutions""",
     {
         "from_name": "Deepa Nair",
         "from_email": "deepa.nair.test@gmail.com",
-        "subject": "Interested but need more time",
+        "subject": "[TEST] Interested but need more time",
         "body": """Hello,
 
 I attended your webinar last week on Python for Data Science.
