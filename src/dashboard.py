@@ -1062,6 +1062,62 @@ elif page == "Performance Overview":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+
+    # ── 4-Week Trend ────────────────────────────────────
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    st.markdown("#### 📈 4-Week Trend")
+    st.markdown("<p style='color:#7d8590; margin-top:-0.5rem;'>Missed leads over the past 4 weeks to spot patterns.</p>", unsafe_allow_html=True)
+
+    if total_leads > 0 and "_parsed_time" in scored.columns and HAS_PLOTLY:
+        try:
+            four_weeks_ago = now - timedelta(days=28)
+            trend_df = scored[scored["_parsed_time"] >= pd.Timestamp(four_weeks_ago)].copy()
+
+            if len(trend_df) > 0:
+                trend_df["week"] = trend_df["_parsed_time"].dt.to_period("W").apply(lambda r: r.start_time.strftime("%b %d"))
+                weekly_missed = trend_df[trend_df["predicted_missed"] == 1].groupby("week").size().reset_index(name="missed")
+                weekly_total = trend_df.groupby("week").size().reset_index(name="total")
+                weekly = weekly_total.merge(weekly_missed, on="week", how="left").fillna(0)
+                weekly["missed"] = weekly["missed"].astype(int)
+                weekly = weekly.sort_values("week")
+
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=weekly["week"], y=weekly["total"],
+                    mode="lines+markers", name="Total Leads",
+                    line=dict(color="#38bdf8", width=2),
+                    marker=dict(size=8)
+                ))
+                fig.add_trace(go.Scatter(
+                    x=weekly["week"], y=weekly["missed"],
+                    mode="lines+markers", name="Missed Leads",
+                    line=dict(color="#f87171", width=2),
+                    marker=dict(size=8),
+                    fill="tozeroy", fillcolor="rgba(248,113,113,0.08)"
+                ))
+                fig.update_layout(
+                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                    font_color='#7d8590', showlegend=True,
+                    legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+                    margin=dict(l=40, r=40, t=20, b=40),
+                    yaxis=dict(showgrid=True, gridcolor='rgba(88,166,255,0.06)', title='Leads'),
+                    xaxis=dict(showgrid=False, title='Week')
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("No data in the past 4 weeks. Run more scans to build trend data.")
+        except Exception:
+            st.info("Could not generate trend data. Run more scans over time to see weekly patterns.")
+    else:
+        if not HAS_PLOTLY:
+            st.info("Plotly is required for trend charts.")
+        elif total_leads == 0:
+            st.info("No data yet. Run a scan to start building trend data.")
+        else:
+            st.info("Run more scans over multiple weeks to see trend data.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
     # ── Leads Saved: Before vs After ────────────────────────
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
     st.markdown("#### 💡 Estimated Leads Saved")
