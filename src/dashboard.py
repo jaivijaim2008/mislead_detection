@@ -16,7 +16,7 @@ import os
 import json
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # ── Import Fallbacks & Safety ──────────────────────────────
 try:
@@ -476,7 +476,7 @@ with st.sidebar:
     page = st.radio(
         "Go to:",
         ["Command Center", "Lead Explorer", "Auto-Replies Tracker",
-         "Interactive Pipeline Graph", "Model Analytics", "Workflow Settings"],
+         "Interactive Pipeline Graph", "Performance Overview", "Workflow Settings"],
         label_visibility="collapsed"
     )
 
@@ -932,97 +932,229 @@ elif page == "Interactive Pipeline Graph":
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════
-# PAGE: Model Analytics
+# PAGE: Performance Overview
 # ══════════════════════════════════════════════════════════
-elif page == "Model Analytics":
+elif page == "Performance Overview":
+    from datetime import timedelta
+
+    scored = load_scored_leads()
+    reply_log = load_json_log(REPLY_LOG)
+    followup_status = load_json_log(FOLLOWUP_LOG)
+
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-    st.subheader("🤖 ML Model Performance Analytics")
+    st.subheader("📈 Performance Overview")
+    st.markdown("<p style='color:#7d8590; margin-top:-0.5rem;'>Your sales lead recovery at a glance. No technical jargon — just the numbers that matter.</p>", unsafe_allow_html=True)
 
-    # Model comparison
-    if os.path.exists(MODEL_CMP):
-        with open(MODEL_CMP) as f:
-            cmp_data = json.load(f)
+    # ── Compute metrics from scored leads ──────────────────
+    now = datetime.now()
+    week_ago = now - timedelta(days=7)
+    two_weeks_ago = now - timedelta(days=14)
 
-        models_dict = cmp_data.get("models", {})
-        best_model = cmp_data.get("best", "N/A")
+    total_leads = len(scored)
+    missed_total = 0
+    missed_this_week = 0
+    missed_last_week = 0
+    responded_count = 0
 
-        if models_dict:
-            st.markdown("#### Model AUC Comparison")
-            model_names = list(models_dict.keys())
-            aucs = [models_dict[m].get("auc", 0) for m in model_names]
+    if total_leads > 0 and "predicted_missed" in scored.columns:
+        missed_total = int(scored["predicted_missed"].sum())
+        responded_count = total_leads - missed_total
 
-            if HAS_PLOTLY:
-                fig = px.bar(
-                    x=model_names, y=aucs,
-                    title="Model Test AUC Scores",
-                    labels={"x": "Model", "y": "AUC Score"},
-                    color=aucs,
-                    color_continuous_scale=["#f87171", "#fbbf24", "#34d399", "#38bdf8", "#a78bfa"]
-                )
-                fig.update_layout(
-                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                    font_color='#7d8590', showlegend=False,
-                    xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='rgba(88,166,255,0.06)'),
-                    coloraxis_showscale=False, margin=dict(l=40, r=40, t=40, b=40)
-                )
-                st.plotly_chart(fig, use_container_width=True)
+        # Time-based breakdown if _received_time exists
+        if "_received_time" in scored.columns:
+            try:
+                scored["_parsed_time"] = pd.to_datetime(scored["_received_time"],
+                                                        format="%Y-%m-%d %H:%M UTC",
+                                                        errors="coerce")
+                this_week_mask = scored["_parsed_time"] >= pd.Timestamp(week_ago)
+                last_week_mask = (scored["_parsed_time"] >= pd.Timestamp(two_weeks_ago)) & (
+                    scored["_parsed_time"] < pd.Timestamp(week_ago))
+                missed_this_week = int(scored.loc[this_week_mask & (scored["predicted_missed"] == 1)].shape[0])
+                missed_last_week = int(scored.loc[last_week_mask & (scored["predicted_missed"] == 1)].shape[0])
+            except Exception:
+                pass
 
-            st.info(f"**Best Model:** {best_model}")
+    # Auto-replies sent (count unique leads, not total emails)
+    auto_replied_leads = set()
+    if isinstance(reply_log, list):
+        for r in reply_log:
+            if isinstance(r, dict) and r.get("lead_id"):
+                auto_replied_leads.add(r["lead_id"])
+    auto_reply_count = len(auto_replied_leads)
+
+    # Recovery: leads with completed human follow-up (unique)
+    recovered = 0
+    if isinstance(followup_status, dict):
+        recovered = sum(1 for s in followup_status.values()
+                        if isinstance(s, dict) and s.get("human_followed_up"))
+
+    # Follow-up completion rate: % of missed leads fully handled
+    # (auto-replied OR human-followed-up)
+    handled_leads = set(auto_replied_leads)
+    if isinstance(followup_status, dict):
+        for lid, s in followup_status.items():
+            if isinstance(s, dict) and (s.get("auto_replied") or s.get("human_followed_up")):
+                handled_leads.add(lid)
+    recovery_rate = (len(handled_leads) / missed_total * 100) if missed_total > 0 else 0
+
+    # Estimated leads saved = unique missed leads that were handled
+    leads_saved = len(handled_leads)
+
+    # ── KPI Cards ──────────────────────────────────────────
+    st.markdown(f"""
+    <div class="kpi-container">
+        <div class="kpi-card red">
+            <div class="kpi-value">{missed_total}</div>
+            <div class="kpi-label">Missed Leads Detected</div>
+        </div>
+        <div class="kpi-card blue">
+            <div class="kpi-value">{auto_reply_count}</div>
+            <div class="kpi-label">Auto Follow-Ups Sent</div>
+        </div>
+        <div class="kpi-card green">
+            <div class="kpi-value">{recovery_rate:.0f}%</div>
+            <div class="kpi-label">Recovery Rate</div>
+        </div>
+        <div class="kpi-card purple">
+            <div class="kpi-value">{leads_saved}</div>
+            <div class="kpi-label">Leads Saved</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── This Week vs Last Week ──────────────────────────────
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    st.markdown("#### 📅 This Week vs Last Week")
+
+    week_col1, week_col2 = st.columns(2)
+    with week_col1:
+        delta_w = missed_this_week - missed_last_week
+        delta_color = "normal" if delta_w <= 0 else "inverse"
+        st.metric(
+            label="Missed Leads This Week",
+            value=missed_this_week,
+            delta=f"{delta_w:+d} vs last week" if missed_last_week > 0 else None,
+            delta_color=delta_color
+        )
+    with week_col2:
+        st.metric(
+            label="Missed Leads Last Week",
+            value=missed_last_week
+        )
+
+    if HAS_PLOTLY and (missed_this_week > 0 or missed_last_week > 0):
+        fig = go.Figure(data=[
+            go.Bar(name='Last Week', x=['Missed Leads'], y=[missed_last_week],
+                   marker_color='rgba(125, 133, 144, 0.6)'),
+            go.Bar(name='This Week', x=['Missed Leads'], y=[missed_this_week],
+                   marker_color='#f87171')
+        ])
+        fig.update_layout(
+            barmode='group',
+            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+            font_color='#7d8590', showlegend=True,
+            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+            margin=dict(l=40, r=40, t=20, b=40),
+            yaxis=dict(showgrid=True, gridcolor='rgba(88,166,255,0.06)'),
+            xaxis=dict(showgrid=False)
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # ── Leads Saved: Before vs After ────────────────────────
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    st.markdown("#### 💡 Estimated Leads Saved")
+    st.markdown("<p style='color:#7d8590; margin-top:-0.5rem;'>How many leads would have been lost without this system?</p>", unsafe_allow_html=True)
+
+    saved_col1, saved_col2 = st.columns(2)
+    with saved_col1:
+        st.markdown(f"""
+        <div style="background:rgba(248,113,113,0.08); border:1px solid rgba(248,113,113,0.15); border-radius:12px; padding:1.25rem; text-align:center;">
+            <div style="font-size:0.75rem; color:#f87171; text-transform:uppercase; letter-spacing:0.06em; font-weight:600; margin-bottom:0.5rem;">Without This System</div>
+            <div style="font-size:2.5rem; font-weight:800; color:#f87171; font-family:'JetBrains Mono',monospace;">{missed_total}</div>
+            <div style="font-size:0.82rem; color:#7d8590; margin-top:0.25rem;">leads would have been missed</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with saved_col2:
+        st.markdown(f"""
+        <div style="background:rgba(52,211,153,0.08); border:1px solid rgba(52,211,153,0.15); border-radius:12px; padding:1.25rem; text-align:center;">
+            <div style="font-size:0.75rem; color:#34d399; text-transform:uppercase; letter-spacing:0.06em; font-weight:600; margin-bottom:0.5rem;">With This System</div>
+            <div style="font-size:2.5rem; font-weight:800; color:#34d399; font-family:'JetBrains Mono',monospace;">{leads_saved}</div>
+            <div style="font-size:0.82rem; color:#7d8590; margin-top:0.25rem;">leads recovered via auto-reply</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    if HAS_PLOTLY and missed_total > 0:
+        fig = go.Figure(data=[
+            go.Bar(name='Without System', x=['Leads'], y=[missed_total],
+                   marker_color='#f87171'),
+            go.Bar(name='Recovered', x=['Leads'], y=[leads_saved],
+                   marker_color='#34d399')
+        ])
+        fig.update_layout(
+            barmode='group',
+            title='Leads Lost vs Leads Recovered',
+            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+            font_color='#7d8590', showlegend=True,
+            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+            margin=dict(l=40, r=40, t=40, b=40),
+            yaxis=dict(showgrid=True, gridcolor='rgba(88,166,255,0.06)'),
+            xaxis=dict(showgrid=False)
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    elif missed_total == 0:
+        st.info("No missed leads yet. Run a scan to start tracking recovery metrics.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # ── Recovery Details ────────────────────────────────────
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    st.markdown("#### 🔍 Recovery Breakdown")
+
+    if missed_total > 0:
+        detail_col1, detail_col2, detail_col3 = st.columns(3)
+        with detail_col1:
+            auto_pct = (auto_reply_count / missed_total * 100) if missed_total > 0 else 0
+            st.metric(label="Auto-Replied", value=auto_reply_count,
+                      delta=f"{auto_pct:.0f}% of missed leads")
+        with detail_col2:
+            human_pct = (recovered / missed_total * 100) if missed_total > 0 else 0
+            st.metric(label="Human Follow-Up Done", value=recovered,
+                      delta=f"{human_pct:.0f}% of missed leads")
+        with detail_col3:
+            pending = max(0, missed_total - auto_reply_count - recovered)
+            st.metric(label="Still Pending", value=pending,
+                      delta="Needs attention" if pending > 0 else "All handled",
+                      delta_color="inverse" if pending > 0 else "normal")
+
+        # Recovery rate gauge
+        if HAS_PLOTLY:
+            fig = go.Figure(go.Indicator(
+                mode="gauge+number+delta",
+                value=recovery_rate,
+                title={"text": "Recovery Rate (%)", "font": {"color": "#e6edf3"}},
+                number={"suffix": "%", "font": {"color": "#e6edf3"}},
+                gauge={
+                    "axis": {"range": [0, 100], "tickcolor": "#7d8590"},
+                    "bar": {"color": "#34d399"},
+                    "bgcolor": "rgba(22,27,34,0.5)",
+                    "steps": [
+                        {"range": [0, 50], "color": "rgba(248,113,113,0.15)"},
+                        {"range": [50, 80], "color": "rgba(251,191,36,0.15)"},
+                        {"range": [80, 100], "color": "rgba(52,211,153,0.15)"}
+                    ],
+                    "threshold": {"line": {"color": "#38bdf8", "width": 3}, "thickness": 0.8, "value": recovery_rate}
+                }
+            ))
+            fig.update_layout(
+                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                font_color='#7d8590', height=300,
+                margin=dict(l=40, r=40, t=40, b=40)
+            )
+            st.plotly_chart(fig, use_container_width=True)
     else:
-        st.info("No model comparison data available. Run training first.")
-
-    st.markdown("---")
-
-    # Model comparison chart image
-    if os.path.exists(CMP_CHART):
-        st.markdown("#### Before vs After Optuna Tuning")
-        st.image(CMP_CHART, use_container_width=True)
-
-    st.markdown("---")
-
-    # XGBoost tuning results
-    if os.path.exists(XGB_TUNING):
-        with open(XGB_TUNING) as f:
-            xgb_data = json.load(f)
-        st.markdown("#### XGBoost Tuning Results (Optuna)")
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Best AUC", f"{xgb_data.get('best_auc', 0):.4f}")
-        col2.metric("Test AUC", f"{xgb_data.get('test_auc', 0):.4f}")
-        col3.metric("Trials", xgb_data.get('n_trials', 0))
-
-        if xgb_data.get("best_params"):
-            st.json(xgb_data["best_params"])
-
-    st.markdown("---")
-
-    # DL charts
-    st.markdown("#### Deep Learning Visualizations")
-    dl_cols = st.columns(3)
-    for i, (path, label) in enumerate([
-        (DL_HIST, "Training History"), (DL_CM, "Confusion Matrix"), (DL_ROC, "ROC Curve")
-    ]):
-        with dl_cols[i]:
-            if os.path.exists(path) and HAS_PIL:
-                st.markdown(f"**{label}**")
-                st.image(path, use_container_width=True)
-            else:
-                st.caption(f"{label}: Not available")
-
-    # Feature importance
-    st.markdown("---")
-    st.markdown("#### Feature Importance")
-    if os.path.exists(FI_IMG) and HAS_PIL:
-        st.image(FI_IMG, use_container_width=True)
-    else:
-        st.info("Feature importance chart not available.")
-
-    # Classification report
-    if os.path.exists(REPORT):
-        st.markdown("---")
-        st.markdown("#### Grand Ensemble Classification Report")
-        with open(REPORT) as f:
-            report_text = f.read()
-        st.code(report_text, language="text")
+        st.info("No missed leads to analyze yet. The metrics above will populate as leads are detected.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
