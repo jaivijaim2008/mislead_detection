@@ -209,6 +209,12 @@ def send_test_emails():
     print("=" * 60)
     print()
 
+    if not SMTP_USER or not SMTP_PASS:
+        print("[ERROR] Set SMTP_USER and SMTP_PASS environment variables first.")
+        print("  Example:  export SMTP_USER=your@gmail.com")
+        print("           export SMTP_PASS=xxxx-xxxx-xxxx-xxxx")
+        return
+
     try:
         server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
         server.starttls()
