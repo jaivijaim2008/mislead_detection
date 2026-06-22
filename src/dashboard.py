@@ -850,7 +850,7 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
     st.markdown("---")
-    st.markdown("<p style='font-size: 0.7rem; color:var(--text-muted); text-align: center;'>Nebula Dashboard v3.0<br>Batch 2025-2029</p>", unsafe_allow_html=True)
+
 
 
 # ══════════════════════════════════════════════════════════
@@ -1640,6 +1640,6 @@ elif page == "Workflow Settings":
 # ── Footer ─────────────────────────────────────────────────
 st.markdown("""
 <div class="neb-footer">
-    Missed-Lead Detector &bull; AI-Powered Sales Command Center &bull; CIT Chennai Batch 2025-2029
+    Missed-Lead Detector &bull; AI-Powered Sales Command Center &bull; CIT Chennai
 </div>
-""")
+""", unsafe_allow_html=True)
