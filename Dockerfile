@@ -1,6 +1,5 @@
 FROM python:3.11-slim
 
-# Set working directory to the missed_lead_detector folder
 WORKDIR /app
 
 # Install system dependencies for Pillow and other packages
@@ -9,16 +8,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+COPY missed_lead_detector/requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the entire project
-COPY . .
+COPY missed_lead_detector/ .
 
-# Set the working directory for the Streamlit app
 WORKDIR /app/src
 
 # Expose the port Streamlit will run on
