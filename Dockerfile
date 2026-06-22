@@ -15,6 +15,6 @@ COPY . .
 
 WORKDIR /app/src
 
-EXPOSE 8501
+EXPOSE $PORT
 
-CMD ["streamlit", "run", "dashboard.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.headless=true", "--browser.gatherUsageStats=false"]
+CMD streamlit run dashboard.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true --browser.gatherUsageStats=false
