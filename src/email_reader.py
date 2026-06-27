@@ -56,9 +56,7 @@ PROMOTIONAL_SENDER_DOMAINS = [
     "sparkpostmail.com",
     "notifications.google.com",
     "xt.local",
-]
-
-# Known promotional subject line keywords (case-insensitive match)
+]# Known promotional subject line keywords (case-insensitive match)
 PROMOTIONAL_SUBJECT_KW = [
     "sponsored", "advertisement", "promotion", "weekly digest",
     "newsletter", "you might also like", "recommended for you",
@@ -69,9 +67,55 @@ PROMOTIONAL_SUBJECT_KW = [
     "unread", "update:",
     "your profile is a good fit",
     "top internships", "internships matching",
-    "build the future",
-    "what shipped",
+    "build the future", "what shipped",
     "verified",
+]
+
+# OTP, verification codes, and security alerts — NOT customer inquiries
+OTP_SUBJECT_PATTERNS = [
+    "otp", "one time password", "one-time password",
+    "verification code", "verify your", "confirm your",
+    "security code", "auth code", "authentication code",
+    "login code", "sign in code", "reset password",
+    "password reset", "account recovery", "account verification",
+    "email verification", "phone verification",
+    "your code is", "code:", "use code",
+    "enter the code", "enter code",
+]
+
+# Banking, financial, and transaction alerts
+BANKING_SUBJECT_PATTERNS = [
+    "transaction alert", "payment received", "payment confirmation",
+    "order confirmation", "order placed", "order shipped",
+    "delivery update", "shipping update", "track your order",
+    "invoice", "receipt", "billing statement",
+    "account statement", "balance alert", "low balance",
+    "debit alert", "credit alert", "transfer successful",
+    "upi transaction", "neft", "rtgs", "imps",
+]
+
+# Social media and app notifications
+SOCIAL_NOTIFICATION_PATTERNS = [
+    "new follower", "someone followed", "you have a new follower",
+    "friend request", "someone tagged", "mentioned you",
+    "comment on your", "replied to your", "liked your",
+    "shared your", "posted in", "new message from",
+    "chat message", "direct message", "someone viewed your profile",
+    "connection request", "accepted your request",
+    "your post was", "your comment was",
+]
+
+# Generic automated notification patterns in subject
+AUTOMATED_SUBJECT_PATTERNS = [
+    "automated", "system notification", "system alert",
+    "do not reply", "this is an automated",
+    "no reply", "noreply", "no-reply",
+    "notification from", "alert from",
+    "your subscription", "subscription confirmation",
+    "welcome to", "account created", "account activated",
+    "your account", "member since",
+    "weekly report", "daily report", "monthly summary",
+    "activity summary", "performance report",
 ]
 
 # Known reply/sent-from addresses for our own company — skip these
@@ -220,6 +264,69 @@ def _is_promotional_email(sender_email: str, subject: str, body: str = "") -> bo
     return False
 
 
+def _is_automated_notification(sender_email: str, subject: str, body: str = "") -> bool:
+    """
+    Detect OTP, verification codes, banking alerts, social media notifications,
+    and other automated emails that are NOT genuine customer inquiries.
+    """
+    subject_lower = subject.lower()
+    body_lower = body.lower()
+    sender_lower = sender_email.lower()
+
+    # Check OTP/verification patterns in subject
+    for pattern in OTP_SUBJECT_PATTERNS:
+        if pattern in subject_lower:
+            return True
+
+    # Check banking/transaction patterns in subject
+    for pattern in BANKING_SUBJECT_PATTERNS:
+        if pattern in subject_lower:
+            return True
+
+    # Check social media notification patterns in subject
+    for pattern in SOCIAL_NOTIFICATION_PATTERNS:
+        if pattern in subject_lower:
+            return True
+
+    # Check generic automated notification patterns in subject
+    for pattern in AUTOMATED_SUBJECT_PATTERNS:
+        if pattern in subject_lower:
+            return True
+
+    # Check body for OTP patterns (common formats)
+    otp_body_patterns = [
+        r"your otp is\s*[:\-]?\s*\d{4,6}",
+        r"your one time password is\s*[:\-]?\s*\d{4,6}",
+        r"verification code[:\s]+\d{4,6}",
+        r"security code[:\s]+\d{4,6}",
+        r"use code[:\s]+\d{4,6}",
+        r"enter[:\s]+\d{4,6}",
+        r"code[:\s]+\w{4,8}",
+    ]
+    for pattern in otp_body_patterns:
+        if re.search(pattern, body_lower):
+            return True
+
+    # Check for common automated sender patterns
+    # NOTE: Do NOT include support@, help@, info@ — these are legitimate inquiry addresses
+    automated_sender_patterns = [
+        "otp@", "verification@", "security@", "alert@",
+        "transaction@", "payment@", "order@", "shipping@",
+        "notification@", "notify@", "updates@",
+        "accounts@", "billing@", "invoice@",
+        "hello@", "hi@",  # Generic automated greetings
+    ]
+    for pattern in automated_sender_patterns:
+        if pattern in sender_lower:
+            return True
+
+    # Check for numeric sender addresses (common for OTP systems)
+    if re.match(r'^\d+@', sender_lower):
+        return True
+
+    return False
+
+
 def _is_auto_reply(msg) -> bool:
     """Detect auto-replies and bounces."""
     auto_headers = [
@@ -362,6 +469,10 @@ def fetch_customer_emails(max_emails: int = 50,
 
             # Skip promotional / newsletter / marketing emails
             if _is_promotional_email(sender_email, subject, body):
+                continue
+
+            # Skip OTP, banking alerts, social media notifications, and other automated emails
+            if _is_automated_notification(sender_email, subject, body):
                 continue
 
             # ── Parse timestamp ──

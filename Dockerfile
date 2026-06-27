@@ -5,6 +5,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
@@ -17,4 +18,7 @@ WORKDIR /app/src
 
 EXPOSE $PORT
 
-CMD streamlit run dashboard.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true --browser.gatherUsageStats=false
+HEALTHCHECK --interval=120s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost:$PORT/_stcore/health || exit 1
+
+CMD streamlit run dashboard.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true --browser.gatherUsageStats=false --server.enableCORS=false --server.enableXsrfProtection=false

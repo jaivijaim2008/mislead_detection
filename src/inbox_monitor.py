@@ -158,7 +158,8 @@ def run_scan(dry_run: bool = False) -> dict:
             channel=row.get("channel", "Email"),
         )
 
-        # Build email payload
+        # Build email payload — include smart reply content so auto_followup
+        # sends the intent-aware, personalized reply instead of the generic template
         email_payload = {
             "lead_id": lead_id,
             "customer_email": row["_customer_email"],
@@ -166,6 +167,9 @@ def run_scan(dry_run: bool = False) -> dict:
             "channel": row.get("channel", "Email"),
             "subject": row["_subject"],
             "original_message_id": row.get("_message_id", ""),
+            "reply_subject": reply["reply_subject"],
+            "reply_body": reply["reply_body"],
+            "detected_intent": reply["detected_intent"],
         }
 
         if dry_run:

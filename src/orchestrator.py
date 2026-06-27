@@ -131,9 +131,17 @@ def run_live_pipeline(preview_only: bool = False):
                   f"intent={row['high_intent_flag']} | "
                   f"prob={prob:.0%}")
 
-    # Build email payloads for missed leads
+    # Build email payloads for missed leads — generate smart replies
+    from smart_reply_engine import generate_reply
     email_payloads = []
     for _, row in missed.iterrows():
+        reply = generate_reply(
+            customer_name=row["_customer_name"],
+            customer_email=row["_customer_email"],
+            subject=row["_subject"],
+            message_text=row["message_text"],
+            channel=row.get("channel", "Email"),
+        )
         email_payloads.append({
             "lead_id"             : row["lead_id"],
             "customer_email"      : row["_customer_email"],
@@ -141,6 +149,9 @@ def run_live_pipeline(preview_only: bool = False):
             "channel"             : "Email",
             "subject"             : row["_subject"],
             "original_message_id" : row.get("_message_id", ""),
+            "reply_subject"       : reply["reply_subject"],
+            "reply_body"          : reply["reply_body"],
+            "detected_intent"     : reply["detected_intent"],
         })
 
     if preview_only:
