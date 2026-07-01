@@ -1,0 +1,7 @@
+{
+  "name": "lead-detector",
+  "description": "Minimal agent for scoring leads, detecting intent, and drafting replies using the existing missed-lead detector Python logic.",
+  "instruction": { "$file": "instruction.md" },
+  "toolsets": ["WORKSPACE_CLI"],
+  "visibility": "POD"
+}
