@@ -221,6 +221,12 @@
         <p>Review a lead quickly, score its urgency, identify intent, and draft a follow-up reply from a single screen.</p>
       </section>
 
+      <div id="kpi-row" class="grid" style="margin-bottom:20px;">
+        <section class="card" id="kpi-cards" style="display:flex;gap:16px;align-items:stretch;">
+          <!-- KPI cards injected here -->
+        </section>
+      </div>
+
       <div class="grid">
         <section class="card">
           <form id="lead-form">
@@ -274,6 +280,18 @@
             <button id="copy-btn" class="secondary" type="button">Copy Reply</button>
           </div>
           <textarea id="reply-output" readonly placeholder="The drafted reply will appear here."></textarea>
+        </section>
+      </div>
+      
+      <div id="extra-panels" style="margin-top:20px;display:grid;grid-template-columns:1fr 420px;gap:20px;">
+        <section class="card" id="plots-card">
+          <h3 style="margin-top:0;margin-bottom:12px">Model Visuals</h3>
+          <div id="plots-container" style="display:flex;flex-direction:column;gap:12px"></div>
+        </section>
+
+        <section class="card" id="logs-card">
+          <h3 style="margin-top:0;margin-bottom:12px">Recent Logs</h3>
+          <div id="logs-container" style="display:flex;flex-direction:column;gap:8px;max-height:420px;overflow:auto;padding-right:6px"></div>
         </section>
       </div>
     </div>
@@ -414,6 +432,207 @@
         return parts.join("");
       }
 
+      // ── Outputs / KPIs loader ──────────────────────────────────────────
+      async function tryFetchAny(paths) {
+        for (const p of paths) {
+          try {
+            const res = await fetch(p, { cache: 'no-store' });
+            if (!res.ok) continue;
+            const ct = res.headers.get('content-type') || '';
+            const text = await res.text();
+            return { text, contentType: ct, url: p };
+          } catch (e) {
+            continue;
+          }
+        }
+        return null;
+      }
+
+      function parseCsv(text) {
+        const lines = text.trim().split(/\r?\n/);
+        if (!lines.length) return [];
+        const header = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+        return lines.slice(1).map(l => {
+          const cols = l.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+          const obj = {};
+          for (let i = 0; i < header.length; i++) obj[header[i]] = cols[i] ?? '';
+          return obj;
+        });
+      }
+
+      function createKpiCard(title, value, subtitle) {
+        const card = document.createElement('div');
+        card.style.flex = '1';
+        card.style.background = 'var(--surface)';
+        card.style.border = '1px solid var(--border)';
+        card.style.borderRadius = '12px';
+        card.style.padding = '14px';
+        card.style.display = 'flex';
+        card.style.flexDirection = 'column';
+        card.style.justifyContent = 'center';
+
+        const t = document.createElement('div');
+        t.style.fontSize = '0.85rem';
+        t.style.color = 'var(--muted)';
+        t.textContent = title;
+
+        const v = document.createElement('div');
+        v.style.fontSize = '1.6rem';
+        v.style.fontWeight = '800';
+        v.style.marginTop = '6px';
+        v.textContent = value;
+
+        const s = document.createElement('div');
+        s.style.fontSize = '0.85rem';
+        s.style.color = 'var(--muted)';
+        s.style.marginTop = '6px';
+        s.textContent = subtitle || '';
+
+        card.appendChild(t);
+        card.appendChild(v);
+        card.appendChild(s);
+        return card;
+      }
+
+      async function loadKpis() {
+        const cfg = window.__LEMMA_CONFIG__ || {};
+        const base = (cfg.apiUrl || window.location.origin).replace(/\/$/, '');
+        const candidates = [
+          `${base}/outputs/leads_scored.csv`,
+          `${base}/files/outputs/leads_scored.csv`,
+          `${base}/public/outputs/leads_scored.csv`,
+          `/outputs/leads_scored.csv`,
+          `/files/outputs/leads_scored.csv`,
+        ];
+
+        const found = await tryFetchAny(candidates);
+        const container = document.getElementById('kpi-cards');
+        container.innerHTML = '';
+        if (!found) {
+          container.appendChild(createKpiCard('Leads', '—', 'No outputs/leads_scored.csv found'));
+          container.appendChild(createKpiCard('Avg score', '—', 'Unavailable'));
+          container.appendChild(createKpiCard('Hot', '—', '—'));
+          container.appendChild(createKpiCard('Warm', '—', '—'));
+          return;
+        }
+
+        const rows = parseCsv(found.text);
+        const total = rows.length;
+        let sum = 0;
+        let countScore = 0;
+        const buckets = { Hot: 0, Warm: 0, Cold: 0 };
+
+        for (const r of rows) {
+          const s = Number(r.score ?? r.Score ?? r.scored ?? r.score_value);
+          if (!Number.isNaN(s)) { sum += s; countScore += 1; }
+          const p = (r.priority || r.Priority || '').toString().toLowerCase();
+          if (p.includes('hot')) buckets.Hot += 1;
+          else if (p.includes('warm')) buckets.Warm += 1;
+          else buckets.Cold += 1;
+        }
+
+        const avg = countScore ? (sum / countScore) : null;
+        container.appendChild(createKpiCard('Leads', total.toString(), `Data: ${found.url}`));
+        container.appendChild(createKpiCard('Avg score', avg != null ? (avg.toFixed(1) + '/10') : '—', 'Computed from scored rows'));
+        container.appendChild(createKpiCard('Hot', buckets.Hot.toString(), 'High priority leads'));
+        container.appendChild(createKpiCard('Warm', buckets.Warm.toString(), 'Medium priority leads'));
+      }
+
+      // ── Plots & Logs loader ──────────────────────────────────────────
+      async function fetchImageBlobUrl(candidates) {
+        for (const url of candidates) {
+          try {
+            const res = await fetch(url, { cache: 'no-store' });
+            if (!res.ok) continue;
+            const ct = res.headers.get('content-type') || '';
+            if (!ct.startsWith('image')) continue;
+            const blob = await res.blob();
+            return URL.createObjectURL(blob);
+          } catch (e) { continue; }
+        }
+        return null;
+      }
+
+      async function loadPlots() {
+        const cfg = window.__LEMMA_CONFIG__ || {};
+        const base = (cfg.apiUrl || window.location.origin).replace(/\/$/, '');
+        const images = [
+          { title: 'Confusion Matrix', paths: [`${base}/outputs/confusion_matrix.png`, `${base}/outputs/dl_confusion_matrix.png`, `${base}/public/outputs/confusion_matrix.png`] },
+          { title: 'DL Training History', paths: [`${base}/outputs/dl_training_history.png`, `${base}/public/outputs/dl_training_history.png`] },
+          { title: 'Model Comparison', paths: [`${base}/outputs/model_comparison_chart.png`, `${base}/public/outputs/model_comparison_chart.png`] },
+        ];
+
+        const container = document.getElementById('plots-container');
+        container.innerHTML = '';
+        for (const img of images) {
+          const blobUrl = await fetchImageBlobUrl(img.paths.concat([`/outputs/${img.title.replace(/\s+/g,'_').toLowerCase()}.png`]));
+          const wrap = document.createElement('div');
+          wrap.style.display = 'flex';
+          wrap.style.flexDirection = 'column';
+          wrap.style.gap = '8px';
+          const h = document.createElement('div');
+          h.textContent = img.title;
+          h.style.fontWeight = '700';
+          h.style.color = 'var(--muted)';
+          wrap.appendChild(h);
+          if (blobUrl) {
+            const el = document.createElement('img');
+            el.src = blobUrl;
+            el.style.maxWidth = '100%';
+            el.style.borderRadius = '8px';
+            el.style.border = '1px solid var(--border)';
+            wrap.appendChild(el);
+          } else {
+            const note = document.createElement('div');
+            note.textContent = 'Image not available in outputs.';
+            note.style.color = 'var(--muted)';
+            wrap.appendChild(note);
+          }
+          container.appendChild(wrap);
+        }
+      }
+
+      async function loadLogs() {
+        const cfg = window.__LEMMA_CONFIG__ || {};
+        const base = (cfg.apiUrl || window.location.origin).replace(/\/$/, '');
+        const candidates = [
+          `${base}/logs/sent_leads.json`, `${base}/logs/auto_replies.json`, `${base}/logs/followup_status.json`,
+          `${base}/files/logs/sent_leads.json`, `${base}/public/logs/sent_leads.json`,
+          `/logs/sent_leads.json`, `/logs/auto_replies.json`, `/logs/followup_status.json`
+        ];
+
+        const found = await tryFetchAny(candidates);
+        const container = document.getElementById('logs-container');
+        container.innerHTML = '';
+        if (!found) {
+          const p = document.createElement('div');
+          p.textContent = 'No logs found in expected locations.';
+          p.style.color = 'var(--muted)';
+          container.appendChild(p);
+          return;
+        }
+
+        let parsed = [];
+        try { parsed = JSON.parse(found.text); } catch (e) { parsed = []; }
+        if (!Array.isArray(parsed)) {
+          // try to coerce into array if object with recent keys
+          parsed = Object.entries(parsed).slice(-20).map(([k,v]) => ({ key:k, value:v }));
+        }
+
+        const recent = parsed.slice(-20).reverse();
+        for (const item of recent) {
+          const row = document.createElement('div');
+          row.style.borderBottom = '1px solid var(--border)';
+          row.style.padding = '8px 0';
+          const t = document.createElement('div');
+          t.style.fontSize = '0.9rem';
+          t.style.color = 'var(--muted)';
+          t.textContent = (item.name || item.lead_name || item.key || item.id || JSON.stringify(item)).toString().slice(0,120);
+          row.appendChild(t);
+          container.appendChild(row);
+        }
+      }
+
       function runAgentTask(prompt) {
         return new Promise((resolve, reject) => {
           if (!window.customElements?.get("lemma-agent-task")) {
@@ -496,8 +715,15 @@
         }
       });
 
-      window.addEventListener("DOMContentLoaded", () => {
+      window.addEventListener("DOMContentLoaded", async () => {
         setStatus("Ready to analyze. The page will use the Lemma SDK and the lead-detector agent once it is running inside a Lemma app.");
+        try {
+          await loadKpis();
+          await loadPlots();
+          await loadLogs();
+        } catch (e) {
+          console.warn('KPIs load failed', e);
+        }
       });
     </script>
   </body>
