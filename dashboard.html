@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lead Detector Dashboard</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f7fb;
+        --surface: #ffffff;
+        --surface-2: #f8fafc;
+        --text: #14213d;
+        --muted: #5b6474;
+        --border: #dfe5ef;
+        --accent: #2563eb;
+        --accent-2: #0f766e;
+        --warning: #b45309;
+        --danger: #b91c1c;
+        --success: #15803d;
+        --shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+        background: linear-gradient(135deg, #f8fbff 0%, var(--bg) 100%);
+        color: var(--text);
+      }
+
+      .shell {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 32px 20px 48px;
+      }
+
+      .hero {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+        padding: 28px 28px 24px;
+        margin-bottom: 20px;
+      }
+
+      .hero h1 {
+        margin: 0 0 8px;
+        font-size: 1.8rem;
+        font-weight: 700;
+      }
+
+      .hero p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        box-shadow: var(--shadow);
+        padding: 24px;
+      }
+
+      .grid {
+        display: grid;
+        gap: 20px;
+        grid-template-columns: minmax(320px, 1fr) minmax(280px, 1fr);
+      }
+
+      form {
+        display: grid;
+        gap: 16px;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      label span {
+        font-size: 0.92rem;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      input,
+      textarea,
+      button {
+        font: inherit;
+      }
+
+      input,
+      textarea {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px 14px;
+        background: var(--surface-2);
+        color: var(--text);
+        resize: vertical;
+      }
+
+      input:focus,
+      textarea:focus {
+        outline: 2px solid rgba(37, 99, 235, 0.2);
+        border-color: var(--accent);
+      }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      button {
+        cursor: pointer;
+        border: none;
+        border-radius: 999px;
+        padding: 11px 18px;
+        font-weight: 600;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      button:hover { transform: translateY(-1px); }
+
+      .primary {
+        background: var(--accent);
+        color: white;
+        box-shadow: 0 10px 24px rgba(37, 99, 235, 0.2);
+      }
+
+      .secondary {
+        background: #eef2ff;
+        color: var(--accent);
+      }
+
+      .status {
+        margin-top: 12px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        color: var(--muted);
+        background: var(--surface-2);
+        border: 1px dashed var(--border);
+      }
+
+      .status.error {
+        color: var(--danger);
+        background: #fef2f2;
+        border-color: #fecaca;
+      }
+
+      .results {
+        display: grid;
+        gap: 18px;
+        margin-top: 20px;
+      }
+
+      .result-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+        padding: 20px;
+      }
+
+      .result-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .result-head h2 {
+        margin: 0;
+        font-size: 1.05rem;
+      }
+
+      .badge {
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .badge.hot { background: #fef2f2; color: var(--danger); }
+      .badge.warm { background: #fff7ed; color: var(--warning); }
+      .badge.cold { background: #f0fdf4; color: var(--success); }
+      .badge.neutral { background: #eef2ff; color: var(--accent); }
+
+      .score-value {
+        font-size: 2.4rem;
+        font-weight: 800;
+        margin-bottom: 8px;
+      }
+
+      .muted { color: var(--muted); line-height: 1.6; }
+
+      textarea {
+        width: 100%;
+        min-height: 180px;
+      }
+
+      #agent-host { display: none; }
+
+      @media (max-width: 860px) {
+        .grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <section class="hero">
+        <h1>Lead Detector Assistant</h1>
+        <p>Review a lead quickly, score its urgency, identify intent, and draft a follow-up reply from a single screen.</p>
+      </section>
+
+      <div id="kpi-row" class="grid" style="margin-bottom:20px;">
+        <section class="card" id="kpi-cards" style="display:flex;gap:16px;align-items:stretch;">
+          <!-- KPI cards injected here -->
+        </section>
+      </div>
+
+      <div class="grid">
+        <section class="card">
+          <form id="lead-form">
+            <div class="field">
+              <label for="lead-name"><span>Lead name</span></label>
+              <input id="lead-name" name="leadName" placeholder="Sarah" required />
+            </div>
+            <div class="field">
+              <label for="company"><span>Company</span></label>
+              <input id="company" name="company" placeholder="TechCorp" required />
+            </div>
+            <div class="field">
+              <label for="last-message"><span>Last message</span></label>
+              <textarea id="last-message" name="lastMessage" placeholder="Sounds interesting, send more info." required></textarea>
+            </div>
+            <div class="field">
+              <label for="days-since-contact"><span>Days since last contact</span></label>
+              <input id="days-since-contact" name="daysSinceContact" type="number" min="0" step="1" value="3" required />
+            </div>
+            <div class="actions">
+              <button id="analyze-btn" class="primary" type="submit">Analyze Lead</button>
+              <button id="reset-btn" class="secondary" type="reset">Reset</button>
+            </div>
+          </form>
+          <div id="status" class="status">Fill in the fields and analyze the lead.</div>
+        </section>
+
+        <section class="card">
+          <div class="result-card">
+            <div class="result-head">
+              <h2>Score</h2>
+              <span id="priority-badge" class="badge neutral">Pending</span>
+            </div>
+            <div id="score-value" class="score-value">—</div>
+            <div id="score-reason" class="muted">The score will appear here once the agent completes its analysis.</div>
+          </div>
+        </section>
+      </div>
+
+      <div class="results">
+        <section class="result-card">
+          <div class="result-head">
+            <h2>Detected Intent</h2>
+          </div>
+          <div id="intent-value" class="muted">Waiting for analysis.</div>
+        </section>
+
+        <section class="result-card">
+          <div class="result-head">
+            <h2>Drafted Reply</h2>
+            <button id="copy-btn" class="secondary" type="button">Copy Reply</button>
+          </div>
+          <textarea id="reply-output" readonly placeholder="The drafted reply will appear here."></textarea>
+        </section>
+      </div>
+      
+      <div id="extra-panels" style="margin-top:20px;display:grid;grid-template-columns:1fr 420px;gap:20px;">
+        <section class="card" id="plots-card">
+          <h3 style="margin-top:0;margin-bottom:12px">Model Visuals</h3>
+          <div id="plots-container" style="display:flex;flex-direction:column;gap:12px"></div>
+        </section>
+
+        <section class="card" id="logs-card">
+          <h3 style="margin-top:0;margin-bottom:12px">Recent Logs</h3>
+          <div id="logs-container" style="display:flex;flex-direction:column;gap:8px;max-height:420px;overflow:auto;padding-right:6px"></div>
+        </section>
+      </div>
+    </div>
+
+    <div id="agent-host"></div>
+
+    <script>
+      const AGENT_NAME = "lead-detector";
+      const host = document.getElementById("agent-host");
+      const form = document.getElementById("lead-form");
+      const statusBox = document.getElementById("status");
+      const scoreValue = document.getElementById("score-value");
+      const priorityBadge = document.getElementById("priority-badge");
+      const scoreReason = document.getElementById("score-reason");
+      const intentValue = document.getElementById("intent-value");
+      const replyOutput = document.getElementById("reply-output");
+
+      function setStatus(message, isError) {
+        statusBox.textContent = message;
+        statusBox.className = isError ? "status error" : "status";
+      }
+
+      function resetResults() {
+        scoreValue.textContent = "—";
+        priorityBadge.className = "badge neutral";
+        priorityBadge.textContent = "Pending";
+        scoreReason.textContent = "The score will appear here once the agent completes its analysis.";
+        intentValue.textContent = "Waiting for analysis.";
+        replyOutput.value = "";
+      }
+
+      function loadLemmaSdk() {
+        return new Promise((resolve, reject) => {
+          const cfg = window.__LEMMA_CONFIG__ || {};
+          const base = (cfg.apiUrl || window.location.origin).replace(/\/$/, "");
+          if (window.LemmaClient?.LemmaClient) {
+            return resolve();
+          }
+
+          const script = document.createElement("script");
+          script.src = `${base}/public/sdk/lemma-client.js`;
+          script.onload = () => {
+            if (window.LemmaClient?.LemmaClient) {
+              resolve();
+            } else {
+              reject(new Error("The Lemma SDK did not initialize."));
+            }
+          };
+          script.onerror = () => reject(new Error("Unable to load the Lemma SDK from the pod API."));
+          document.head.appendChild(script);
+        });
+      }
+
+      function loadLemmaUiBundle() {
+        return new Promise((resolve, reject) => {
+          const cfg = window.__LEMMA_CONFIG__ || {};
+          const base = (cfg.apiUrl || window.location.origin).replace(/\/$/, "");
+          if (window.customElements?.get("lemma-agent-task")) {
+            return resolve();
+          }
+
+          const script = document.createElement("script");
+          script.src = `${base}/public/sdk/lemma-ui.js`;
+          script.onload = () => {
+            if (window.customElements?.get("lemma-agent-task")) {
+              resolve();
+            } else {
+              reject(new Error("The Lemma agent UI bundle did not register."));
+            }
+          };
+          script.onerror = () => reject(new Error("Unable to load the Lemma agent UI bundle."));
+          document.head.appendChild(script);
+        });
+      }
+
+      function safeParse(value) {
+        if (!value) return null;
+        if (typeof value === "object") return value;
+        if (typeof value === "string") {
+          try {
+            return JSON.parse(value);
+          } catch (error) {
+            return value;
+          }
+        }
+        return value;
+      }
+
+      function extractText(result) {
+        const parsed = safeParse(result);
+        if (!parsed) return "";
+        if (typeof parsed === "string") return parsed;
+        if (typeof parsed === "object") {
+          if (typeof parsed.text === "string") return parsed.text;
+          if (typeof parsed.output === "string") return parsed.output;
+          if (typeof parsed.content === "string") return parsed.content;
+          if (typeof parsed.reply === "string") return parsed.reply;
+          if (typeof parsed.body === "string") return parsed.body;
+          return JSON.stringify(parsed, null, 2);
+        }
+        return String(parsed);
+      }
+
+      function normalizeScore(result) {
+        const parsed = safeParse(result);
+        const candidate = parsed && typeof parsed === "object" ? parsed : { value: parsed };
+        const score = candidate.score ?? candidate.result?.score ?? candidate.output?.score ?? candidate.value;
+        const priority = candidate.priority ?? candidate.result?.priority ?? candidate.output?.priority;
+        const reasoning = candidate.reasoning ?? candidate.result?.reasoning ?? candidate.output?.reasoning;
+        return { score, priority, reasoning };
+      }
+
+      function normalizeIntent(result) {
+        const parsed = safeParse(result);
+        const candidate = parsed && typeof parsed === "object" ? parsed : { value: parsed };
+        const primary = candidate.primary ?? candidate.intent ?? candidate.result?.primary ?? candidate.output?.primary ?? candidate.result?.intent ?? candidate.output?.intent;
+        const scores = candidate.scores ?? candidate.intent_scores ?? candidate.result?.scores ?? candidate.output?.scores ?? candidate.result?.intent_scores ?? candidate.output?.intent_scores;
+        if (primary && scores && typeof scores === "object") {
+          const scoreText = Object.entries(scores)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([label, value]) => `${label}: ${Number(value).toFixed(2)}`)
+            .join(" • ");
+          return `${primary} • ${scoreText}`;
+        }
+        return primary || extractText(result) || "No intent detected.";
+      }
+
+      function normalizeReply(result) {
+        const parsed = safeParse(result);
+        const candidate = parsed && typeof parsed === "object" ? parsed : { value: parsed };
+        const subject = candidate.subject ?? candidate.result?.subject ?? candidate.output?.subject;
+        const body = candidate.body ?? candidate.reply ?? candidate.result?.body ?? candidate.output?.body ?? candidate.result?.reply ?? candidate.output?.reply;
+        const parts = [];
+        if (subject) parts.push(`Subject: ${subject}`);
+        if (body) parts.push(`\n${body}`);
+        if (!parts.length) return extractText(result) || "No reply generated.";
+        return parts.join("");
+      }
+
+      // ── Outputs / KPIs loader ──────────────────────────────────────────
+      async function tryFetchAny(paths) {
+        for (const p of paths) {
+          try {
+            const res = await fetch(p, { cache: 'no-store' });
+            if (!res.ok) continue;
+            const ct = res.headers.get('content-type') || '';
+            const text = await res.text();
+            return { text, contentType: ct, url: p };
+          } catch (e) {
+            continue;
+          }
+        }
+        return null;
+      }
+
+      function parseCsv(text) {
+        const lines = text.trim().split(/\r?\n/);
+        if (!lines.length) return [];
+        const header = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+        return lines.slice(1).map(l => {
+          const cols = l.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+          const obj = {};
+          for (let i = 0; i < header.length; i++) obj[header[i]] = cols[i] ?? '';
+          return obj;
+        });
+      }
+
+      function createKpiCard(title, value, subtitle) {
+        const card = document.createElement('div');
+        card.style.flex = '1';
+        card.style.background = 'var(--surface)';
+        card.style.border = '1px solid var(--border)';
+        card.style.borderRadius = '12px';
+        card.style.padding = '14px';
+        card.style.display = 'flex';
+        card.style.flexDirection = 'column';
+        card.style.justifyContent = 'center';
+
+        const t = document.createElement('div');
+        t.style.fontSize = '0.85rem';
+        t.style.color = 'var(--muted)';
+        t.textContent = title;
+
+        const v = document.createElement('div');
+        v.style.fontSize = '1.6rem';
+        v.style.fontWeight = '800';
+        v.style.marginTop = '6px';
+        v.textContent = value;
+
+        const s = document.createElement('div');
+        s.style.fontSize = '0.85rem';
+        s.style.color = 'var(--muted)';
+        s.style.marginTop = '6px';
+        s.textContent = subtitle || '';
+
+        card.appendChild(t);
+        card.appendChild(v);
+        card.appendChild(s);
+        return card;
+      }
+
+      async function loadKpis() {
+        const cfg = window.__LEMMA_CONFIG__ || {};
+        const base = (cfg.apiUrl || window.location.origin).replace(/\/$/, '');
+        const candidates = [
+          `${base}/outputs/leads_scored.csv`,
+          `${base}/files/outputs/leads_scored.csv`,
+          `${base}/public/outputs/leads_scored.csv`,
+          `/outputs/leads_scored.csv`,
+          `/files/outputs/leads_scored.csv`,
+        ];
+
+        const found = await tryFetchAny(candidates);
+        const container = document.getElementById('kpi-cards');
+        container.innerHTML = '';
+        if (!found) {
+          container.appendChild(createKpiCard('Leads', '—', 'No outputs/leads_scored.csv found'));
+          container.appendChild(createKpiCard('Avg score', '—', 'Unavailable'));
+          container.appendChild(createKpiCard('Hot', '—', '—'));
+          container.appendChild(createKpiCard('Warm', '—', '—'));
+          return;
+        }
+
+        const rows = parseCsv(found.text);
+        const total = rows.length;
+        let sum = 0;
+        let countScore = 0;
+        const buckets = { Hot: 0, Warm: 0, Cold: 0 };
+
+        for (const r of rows) {
+          const s = Number(r.score ?? r.Score ?? r.scored ?? r.score_value);
+          if (!Number.isNaN(s)) { sum += s; countScore += 1; }
+          const p = (r.priority || r.Priority || '').toString().toLowerCase();
+          if (p.includes('hot')) buckets.Hot += 1;
+          else if (p.includes('warm')) buckets.Warm += 1;
+          else buckets.Cold += 1;
+        }
+
+        const avg = countScore ? (sum / countScore) : null;
+        container.appendChild(createKpiCard('Leads', total.toString(), `Data: ${found.url}`));
+        container.appendChild(createKpiCard('Avg score', avg != null ? (avg.toFixed(1) + '/10') : '—', 'Computed from scored rows'));
+        container.appendChild(createKpiCard('Hot', buckets.Hot.toString(), 'High priority leads'));
+        container.appendChild(createKpiCard('Warm', buckets.Warm.toString(), 'Medium priority leads'));
+      }
+
+      // ── Plots & Logs loader ──────────────────────────────────────────
+      async function fetchImageBlobUrl(candidates) {
+        for (const url of candidates) {
+          try {
+            const res = await fetch(url, { cache: 'no-store' });
+            if (!res.ok) continue;
+            const ct = res.headers.get('content-type') || '';
+            if (!ct.startsWith('image')) continue;
+            const blob = await res.blob();
+            return URL.createObjectURL(blob);
+          } catch (e) { continue; }
+        }
+        return null;
+      }
+
+      async function loadPlots() {
+        const cfg = window.__LEMMA_CONFIG__ || {};
+        const base = (cfg.apiUrl || window.location.origin).replace(/\/$/, '');
+        const images = [
+          { title: 'Confusion Matrix', paths: [`${base}/outputs/confusion_matrix.png`, `${base}/outputs/dl_confusion_matrix.png`, `${base}/public/outputs/confusion_matrix.png`] },
+          { title: 'DL Training History', paths: [`${base}/outputs/dl_training_history.png`, `${base}/public/outputs/dl_training_history.png`] },
+          { title: 'Model Comparison', paths: [`${base}/outputs/model_comparison_chart.png`, `${base}/public/outputs/model_comparison_chart.png`] },
+        ];
+
+        const container = document.getElementById('plots-container');
+        container.innerHTML = '';
+        for (const img of images) {
+          const blobUrl = await fetchImageBlobUrl(img.paths.concat([`/outputs/${img.title.replace(/\s+/g,'_').toLowerCase()}.png`]));
+          const wrap = document.createElement('div');
+          wrap.style.display = 'flex';
+          wrap.style.flexDirection = 'column';
+          wrap.style.gap = '8px';
+          const h = document.createElement('div');
+          h.textContent = img.title;
+          h.style.fontWeight = '700';
+          h.style.color = 'var(--muted)';
+          wrap.appendChild(h);
+          if (blobUrl) {
+            const el = document.createElement('img');
+            el.src = blobUrl;
+            el.style.maxWidth = '100%';
+            el.style.borderRadius = '8px';
+            el.style.border = '1px solid var(--border)';
+            wrap.appendChild(el);
+          } else {
+            const note = document.createElement('div');
+            note.textContent = 'Image not available in outputs.';
+            note.style.color = 'var(--muted)';
+            wrap.appendChild(note);
+          }
+          container.appendChild(wrap);
+        }
+      }
+
+      async function loadLogs() {
+        const cfg = window.__LEMMA_CONFIG__ || {};
+        const base = (cfg.apiUrl || window.location.origin).replace(/\/$/, '');
+        const candidates = [
+          `${base}/logs/sent_leads.json`, `${base}/logs/auto_replies.json`, `${base}/logs/followup_status.json`,
+          `${base}/files/logs/sent_leads.json`, `${base}/public/logs/sent_leads.json`,
+          `/logs/sent_leads.json`, `/logs/auto_replies.json`, `/logs/followup_status.json`
+        ];
+
+        const found = await tryFetchAny(candidates);
+        const container = document.getElementById('logs-container');
+        container.innerHTML = '';
+        if (!found) {
+          const p = document.createElement('div');
+          p.textContent = 'No logs found in expected locations.';
+          p.style.color = 'var(--muted)';
+          container.appendChild(p);
+          return;
+        }
+
+        let parsed = [];
+        try { parsed = JSON.parse(found.text); } catch (e) { parsed = []; }
+        if (!Array.isArray(parsed)) {
+          // try to coerce into array if object with recent keys
+          parsed = Object.entries(parsed).slice(-20).map(([k,v]) => ({ key:k, value:v }));
+        }
+
+        const recent = parsed.slice(-20).reverse();
+        for (const item of recent) {
+          const row = document.createElement('div');
+          row.style.borderBottom = '1px solid var(--border)';
+          row.style.padding = '8px 0';
+          const t = document.createElement('div');
+          t.style.fontSize = '0.9rem';
+          t.style.color = 'var(--muted)';
+          t.textContent = (item.name || item.lead_name || item.key || item.id || JSON.stringify(item)).toString().slice(0,120);
+          row.appendChild(t);
+          container.appendChild(row);
+        }
+      }
+
+      function runAgentTask(prompt) {
+        return new Promise((resolve, reject) => {
+          if (!window.customElements?.get("lemma-agent-task")) {
+            return reject(new Error("The agent UI component is not ready yet."));
+          }
+
+          const task = document.createElement("lemma-agent-task");
+          task.setAttribute("agent", AGENT_NAME);
+          task.setAttribute("parse-output", "true");
+          task.setAttribute("input", JSON.stringify({ prompt }));
+          task.addEventListener("lemma-output", function onOutput(event) {
+            try {
+              const detail = event.detail || {};
+              resolve(detail.output ?? detail.text ?? {});
+            } catch (error) {
+              reject(error);
+            }
+          }, { once: true });
+
+          host.innerHTML = "";
+          host.appendChild(task);
+          task.run();
+        });
+      }
+
+      async function analyzeLead(event) {
+        event.preventDefault();
+        resetResults();
+        setStatus("Analyzing the lead through the Lemma agent…");
+
+        const formData = new FormData(form);
+        const leadPayload = {
+          name: formData.get("leadName")?.toString().trim(),
+          company: formData.get("company")?.toString().trim(),
+          last_message: formData.get("lastMessage")?.toString().trim(),
+          days_since_contact: Number(formData.get("daysSinceContact") || 0),
+        };
+
+        try {
+          if (!window.__LEMMA_CONFIG__) {
+            throw new Error("This page needs to run inside a Lemma app or pod context to reach the agent.");
+          }
+
+          await loadLemmaSdk();
+          await loadLemmaUiBundle();
+
+          const scoreResult = await runAgentTask(`Use the score-lead action for this lead payload: ${JSON.stringify(leadPayload)}`);
+          const intentResult = await runAgentTask(`Use the detect-intent action for this message: ${leadPayload.last_message}`);
+          const replyResult = await runAgentTask(`Use the draft-reply action for this lead payload: ${JSON.stringify(leadPayload)}`);
+
+          const score = normalizeScore(scoreResult);
+          const priority = String(score.priority || "Cold").toLowerCase();
+          const scoreText = score.score != null ? `${Number(score.score).toFixed(1)}/10` : "—";
+          scoreValue.textContent = scoreText;
+          priorityBadge.className = `badge ${priority === "hot" ? "hot" : priority === "warm" ? "warm" : "cold"}`;
+          priorityBadge.textContent = priority.charAt(0).toUpperCase() + priority.slice(1);
+          scoreReason.textContent = score.reasoning || "No reasoning was returned by the agent.";
+
+          intentValue.textContent = normalizeIntent(intentResult);
+          replyOutput.value = normalizeReply(replyResult);
+          setStatus("Lead analysis complete.");
+        } catch (error) {
+          setStatus(error.message || "The agent could not complete the analysis.", true);
+          scoreValue.textContent = "—";
+          scoreReason.textContent = "Please confirm the Lemma app context is available and the agent is deployed.";
+        }
+      }
+
+      form.addEventListener("submit", analyzeLead);
+      document.getElementById("reset-btn").addEventListener("click", () => {
+        resetResults();
+        setStatus("Fill in the fields and analyze the lead.");
+      });
+      document.getElementById("copy-btn").addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(replyOutput.value);
+          setStatus("Reply copied to the clipboard.");
+        } catch (error) {
+          setStatus("Clipboard access was blocked. You can still copy the text manually.", true);
+        }
+      });
+
+      window.addEventListener("DOMContentLoaded", async () => {
+        setStatus("Ready to analyze. The page will use the Lemma SDK and the lead-detector agent once it is running inside a Lemma app.");
+        try {
+          await loadKpis();
+          await loadPlots();
+          await loadLogs();
+        } catch (e) {
+          console.warn('KPIs load failed', e);
+        }
+      });
+    </script>
+  </body>
+</html>
