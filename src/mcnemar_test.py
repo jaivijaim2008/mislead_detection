@@ -131,8 +131,10 @@ def run_mcnemar_analysis(models: dict, X_test: np.ndarray, y_test: np.ndarray,
         results.append(result)
 
     df = pd.DataFrame(results)
+    # Keep contingency_table so callers (e.g. print_mcnemar_results) can display
+    # the raw disagreement counts (A_correct_B_wrong, A_wrong_B_correct).
     df = df[["classifier_a", "classifier_b", "chi2", "p_value",
-             "significant", "interpretation"]]
+             "significant", "interpretation", "contingency_table"]]
 
     return df
 

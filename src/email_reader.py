@@ -14,7 +14,7 @@ Run standalone to see a preview of fetched emails:
 ----------------------------------------------------------------------------
 """
 
-import os, re, hashlib, json
+import os, re, hashlib, json, socket
 import imaplib
 import email as email_lib
 from email.header import decode_header
@@ -389,6 +389,10 @@ def fetch_customer_emails(max_emails: int = 50,
 
     print(f"[email_reader] Connecting to {IMAP_HOST}:{IMAP_PORT} as {IMAP_USER} ...")
 
+    # Guard against indefinitely-hanging IMAP connections (network congestion,
+    # firewall drop, etc.).  30 s is generous for a TLS handshake + login.
+    socket.setdefaulttimeout(30)
+
     try:
         mail = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT)
         mail.login(IMAP_USER, IMAP_PASS)
@@ -396,9 +400,11 @@ def fetch_customer_emails(max_emails: int = 50,
     except imaplib.IMAP4.error as e:
         print(f"[email_reader] LOGIN FAILED: {e}")
         print("[email_reader] Check your credentials and ensure App Password is correct.")
+        socket.setdefaulttimeout(None)
         return pd.DataFrame()
     except Exception as e:
         print(f"[email_reader] Connection error: {e}")
+        socket.setdefaulttimeout(None)
         return pd.DataFrame()
 
     # Select inbox
@@ -436,6 +442,40 @@ def fetch_customer_emails(max_emails: int = 50,
             break
 
         try:
+            # ── Stage 1: fetch headers only (cheap) ──────────────────────────
+            # Download just From, Subject, Message-ID, and Date to decide
+            # whether this email is worth fetching the full body for.
+            h_status, h_data = mail.fetch(
+                eid,
+                "(BODY.PEEK[HEADER.FIELDS (FROM SUBJECT MESSAGE-ID DATE)])"
+            )
+            if h_status != "OK" or not h_data or not h_data[0]:
+                continue
+
+            hdr_block = h_data[0][1] if isinstance(h_data[0], tuple) else b""
+            hdr_msg = email_lib.message_from_bytes(hdr_block)
+
+            subject     = _decode_str(hdr_msg.get("Subject", ""))
+            from_hdr    = _decode_str(hdr_msg.get("From", ""))
+            sender_email = _extract_email_address(from_hdr)
+            date_hdr    = hdr_msg.get("Date", "")
+            msg_id      = str(hdr_msg.get("Message-ID", "")).strip()
+
+            # ── Header-level filters (no body download needed) ───────────────
+            if not sender_email or _is_our_own_email(sender_email, subject):
+                continue
+            if msg_id and msg_id in seen_ids:
+                continue
+            is_automated = any(pattern in sender_email for pattern in NOREPLY_PATTERNS)
+            if is_automated:
+                continue
+            # Quick subject-only promotional check before body download
+            if _is_promotional_email(sender_email, subject):
+                continue
+            if _is_automated_notification(sender_email, subject):
+                continue
+
+            # ── Stage 2: full fetch (only if headers pass) ───────────────────
             status, msg_data = mail.fetch(eid, "(RFC822)")
             if status != "OK":
                 continue
@@ -443,35 +483,24 @@ def fetch_customer_emails(max_emails: int = 50,
             raw_email = msg_data[0][1]
             msg = email_lib.message_from_bytes(raw_email)
 
-            # ── Extract metadata ──
-            subject = _decode_str(msg.get("Subject", ""))
-            from_hdr = _decode_str(msg.get("From", ""))
+            # Re-read headers from the full message (more reliable)
+            subject      = _decode_str(msg.get("Subject", ""))
+            from_hdr     = _decode_str(msg.get("From", ""))
             sender_email = _extract_email_address(from_hdr)
-            date_hdr = msg.get("Date", "")
-            msg_id = str(msg.get("Message-ID", "")).strip()
+            date_hdr     = msg.get("Date", "")
+            msg_id       = str(msg.get("Message-ID", "")).strip()
 
-            # ── Skip filtering ──
-            if not sender_email or _is_our_own_email(sender_email, subject):
-                continue
+            # Auto-reply check needs full message headers
             if _is_auto_reply(msg):
-                continue
-            if msg_id and msg_id in seen_ids:
-                continue
-
-            # Skip automated/noreply senders
-            is_automated = any(pattern in sender_email for pattern in NOREPLY_PATTERNS)
-            if is_automated:
                 continue
 
             body = _extract_body(msg)
             if len(body) < min_body_length:
                 continue
 
-            # Skip promotional / newsletter / marketing emails
+            # Full body-aware promotional / automated checks
             if _is_promotional_email(sender_email, subject, body):
                 continue
-
-            # Skip OTP, banking alerts, social media notifications, and other automated emails
             if _is_automated_notification(sender_email, subject, body):
                 continue
 
@@ -537,6 +566,8 @@ def fetch_customer_emails(max_emails: int = 50,
             continue
 
     mail.logout()
+    # Restore default socket timeout so rest of application isn't affected
+    socket.setdefaulttimeout(None)
 
     # Save seen IDs
     _save_seen_ids(new_seen)

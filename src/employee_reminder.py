@@ -19,6 +19,13 @@ try:
 except ImportError:
     GUI_AVAILABLE = False
 
+# Disable GUI when explicitly running headless (e.g. Windows Task Scheduler).
+# run_daily.bat sets STREAMLIT_SERVER_HEADLESS=true; DISPLAY absence covers Linux.
+if os.environ.get("STREAMLIT_SERVER_HEADLESS", "").lower() in ("1", "true"):
+    GUI_AVAILABLE = False
+if not os.environ.get("DISPLAY", "") and sys.platform != "win32":
+    GUI_AVAILABLE = False
+
 def _load_replied() -> set:
     if os.path.exists(LOG_FILE):
         with open(LOG_FILE) as f:

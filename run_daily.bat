@@ -21,13 +21,19 @@ set SENDER_NAME=Sales Team
 REM ---- Paths (update if your project is elsewhere) -----------
 set PROJECT_DIR=C:\Users\HP VICTUS\Desktop\ML\missed_lead_detector
 set LOG_DIR=%PROJECT_DIR%\logs
-set LOG_FILE=%LOG_DIR%\daily_run_%DATE:~-4%%DATE:~4,2%%DATE:~7,2%.log
+REM Use PowerShell to get a locale-independent YYYYMMDD date stamp.
+REM %DATE:~..% slicing is locale-dependent and breaks in non-English Windows.
+for /f %%d in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd"') do set TODAY=%%d
+set LOG_FILE=%LOG_DIR%\daily_run_%TODAY%.log
 
 REM ---- Create log directory if needed -------------------------
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
 REM ---- Python path (full path avoids PATH issues in Task Scheduler) ---
 set PYTHON=C:\Users\HP VICTUS\AppData\Local\Programs\Python\Python311\python.exe
+
+REM ---- Headless mode: prevent Tkinter GUI from blocking scheduled runs ---
+set STREAMLIT_SERVER_HEADLESS=true
 
 REM ---- Run the live pipeline and log output -------------------
 echo ============================================================ >> "%LOG_FILE%"
