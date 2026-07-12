@@ -61,6 +61,62 @@ st.set_page_config(
 )
 
 # ══════════════════════════════════════════════════════════
+#  LOGIN GATE — must pass before ANY other UI renders
+# ══════════════════════════════════════════════════════════
+_AUTH_USER = "jaivijai"
+_AUTH_PASS = "12345678"
+
+if "authenticated" not in st.session_state:
+    st.session_state["authenticated"] = False
+
+if not st.session_state["authenticated"]:
+    st.markdown("""
+    <style>
+    /* Hide sidebar and header during login */
+    [data-testid="stSidebar"] { display: none !important; }
+    header[data-testid="stHeader"] { display: none !important; }
+    .stApp {
+        background: linear-gradient(135deg, #06060f 0%, #0a0a1e 50%, #0d0820 100%) !important;
+        display: flex; align-items: center; justify-content: center;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Centered login card
+    _, col, _ = st.columns([1, 1.2, 1])
+    with col:
+        st.markdown("""
+        <div style="
+            background: rgba(12,12,29,0.85);
+            border: 1px solid rgba(0,212,255,0.18);
+            border-radius: 20px;
+            padding: 2.8rem 2.5rem 2.2rem;
+            margin-top: 8vh;
+            box-shadow: 0 0 60px rgba(0,212,255,0.07);
+            font-family: 'Space Grotesk', sans-serif;
+        ">
+            <div style="text-align:center; margin-bottom: 2rem;">
+                <div style="font-size:2.8rem; margin-bottom:0.5rem;">🔐</div>
+                <h2 style="color:#e8ecf1; margin:0; font-weight:700; font-size:1.6rem;">Missed-Lead Detector</h2>
+                <p style="color:#6b7a90; margin:0.4rem 0 0; font-size:0.9rem;">Sign in to access the Command Center</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        with st.form("login_form", clear_on_submit=False):
+            username = st.text_input("Username", placeholder="Enter your username")
+            password = st.text_input("Password", type="password", placeholder="Enter your password")
+            submitted = st.form_submit_button("Sign In", use_container_width=True, type="primary")
+
+            if submitted:
+                if username.strip() == _AUTH_USER and password == _AUTH_PASS:
+                    st.session_state["authenticated"] = True
+                    st.rerun()
+                else:
+                    st.error("❌ Invalid username or password. Please try again.")
+    st.stop()  # Block everything below until authenticated
+
+# ══════════════════════════════════════════════════════════
 #  NEBULA DESIGN SYSTEM — CSS
 # ══════════════════════════════════════════════════════════
 DESIGN_CSS = """
@@ -942,18 +998,39 @@ if page == "Command Center":
         if scan_btn or dry_btn:
             is_dry = bool(dry_btn)
             st.markdown("**Pipeline Output:**")
-            with st.spinner("Processing mailbox..."):
+            with st.spinner("Processing mailbox — scanning Gmail..."):
                 try:
                     cmd = [sys.executable, os.path.join(BASE, "inbox_monitor.py")]
                     if is_dry:
                         cmd.append("--dry-run")
-                    res = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+
+                    # Pass credentials into the subprocess environment so
+                    # email_reader.py / inbox_monitor.py can connect to Gmail.
+                    # Priority: environment variable already set > .bat config fallback.
+                    scan_env = os.environ.copy()
+                    scan_env.setdefault("IMAP_USER",  os.getenv("IMAP_USER",  "jaivijai188@gmail.com"))
+                    scan_env.setdefault("IMAP_PASS",  os.getenv("IMAP_PASS",  "ldwc atxe rgjc eepa"))
+                    scan_env.setdefault("SMTP_USER",  os.getenv("SMTP_USER",  "jaivijai188@gmail.com"))
+                    scan_env.setdefault("SMTP_PASS",  os.getenv("SMTP_PASS",  "ldwc atxe rgjc eepa"))
+                    scan_env.setdefault("SENDER_NAME", os.getenv("SENDER_NAME", "Sales Team"))
+                    scan_env["STREAMLIT_SERVER_HEADLESS"] = "true"
+
+                    res = subprocess.run(
+                        cmd,
+                        capture_output=True,
+                        text=True,
+                        timeout=120,   # Gmail fetch can take a bit
+                        env=scan_env,
+                    )
                     stdout = res.stdout if res.stdout else "No output returned."
                     st.markdown(f"<pre class='neb-terminal'>{stdout}</pre>", unsafe_allow_html=True)
                     if res.stderr:
-                        st.warning(f"Warnings:\n{res.stderr}")
+                        with st.expander("⚠️ Warnings / stderr"):
+                            st.code(res.stderr)
                     st.cache_data.clear()
                     st.rerun()
+                except subprocess.TimeoutExpired:
+                    st.error("⏱️ Scan timed out after 120 seconds. Gmail may be slow — try again.")
                 except Exception as e:
                     st.error(f"Execution Error: {e}")
         elif not live_connected:
