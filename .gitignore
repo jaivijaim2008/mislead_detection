@@ -39,6 +39,10 @@ models/*.h5
 # Kaggle datasets (re-downloadable)
 data/kaggle/
 
+# Binary / generated
+*.pptx
+*.pdf
+
 # OS
 .DS_Store
 Thumbs.db
