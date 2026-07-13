@@ -868,7 +868,7 @@ if page == "Command Center":
             <p style="color: var(--text-secondary); font-size: 1rem; max-width: 520px; margin: 0 auto;">
                 Connect your Gmail account to start scanning real customer emails.
             </p>
-            <div style="margin-top: 1.5rem; padding: 1.25rem; background: rgba(12,12,29,0.5); border-radius: var(--radius-md); border: 1px solid var(--nebula-border); max-width: 550px; margin-left: auto; margin-right: auto; text-align: left;">
+            <div style="margin-top: 1.5rem; padding: 1.25rem; background: rgba(17,13,26,0.5); border-radius: var(--radius-md); border: 1px solid var(--flare-border); max-width: 550px; margin-left: auto; margin-right: auto; text-align: left;">
                 <p style="color: var(--gold); font-weight: 600; margin-bottom: 0.75rem;">⚡ Setup Steps:</p>
                 <p style="color: var(--text-secondary); font-size: 0.85rem; line-height: 2;">
                     1. Enable 2FA on your Gmail and generate an App Password<br>
@@ -886,27 +886,27 @@ if page == "Command Center":
     # ── KPI Row ──────────────────────────────────────────
     st.markdown(f"""
     <div class="neb-kpi-row">
-        <div class="neb-kpi cyan neb-animate-in neb-animate-in-delay-1">
+        <div class="neb-kpi sun flare-animate-in flare-animate-in-delay-1">
             <div class="neb-kpi-icon">📊</div>
             <div class="neb-kpi-value">{total_leads:,}</div>
             <div class="neb-kpi-label">Scanned Leads</div>
         </div>
-        <div class="neb-kpi coral neb-animate-in neb-animate-in-delay-2">
+        <div class="neb-kpi ember flare-animate-in flare-animate-in-delay-2">
             <div class="neb-kpi-icon">🚨</div>
             <div class="neb-kpi-value">{missed_leads}</div>
             <div class="neb-kpi-label">Missed Leads</div>
         </div>
-        <div class="neb-kpi emerald neb-animate-in neb-animate-in-delay-3">
+        <div class="neb-kpi teal flare-animate-in flare-animate-in-delay-3">
             <div class="neb-kpi-icon">🤖</div>
             <div class="neb-kpi-value">{replied_count}</div>
             <div class="neb-kpi-label">Auto-Replied</div>
         </div>
-        <div class="neb-kpi amber neb-animate-in neb-animate-in-delay-4">
+        <div class="neb-kpi gold flare-animate-in flare-animate-in-delay-4">
             <div class="neb-kpi-icon">⏳</div>
             <div class="neb-kpi-value">{overdue_count}</div>
             <div class="neb-kpi-label">Awaiting Action</div>
         </div>
-        <div class="neb-kpi violet neb-animate-in neb-animate-in-delay-5">
+        <div class="neb-kpi rose flare-animate-in flare-animate-in-delay-5">
             <div class="neb-kpi-icon">🔥</div>
             <div class="neb-kpi-value">{high_intent}</div>
             <div class="neb-kpi-label">High Intent</div>
@@ -1363,22 +1363,22 @@ elif page == "Performance Overview":
     # KPI Cards
     st.markdown(f"""
     <div class="neb-kpi-row">
-        <div class="neb-kpi coral neb-animate-in neb-animate-in-delay-1">
+        <div class="neb-kpi ember flare-animate-in flare-animate-in-delay-1">
             <div class="neb-kpi-icon">🚨</div>
             <div class="neb-kpi-value">{missed_total}</div>
             <div class="neb-kpi-label">Missed Detected</div>
         </div>
-        <div class="neb-kpi cyan neb-animate-in neb-animate-in-delay-2">
+        <div class="neb-kpi sun flare-animate-in flare-animate-in-delay-2">
             <div class="neb-kpi-icon">🤖</div>
             <div class="neb-kpi-value">{auto_reply_count}</div>
             <div class="neb-kpi-label">Auto Follow-Ups</div>
         </div>
-        <div class="neb-kpi emerald neb-animate-in neb-animate-in-delay-3">
+        <div class="neb-kpi teal flare-animate-in flare-animate-in-delay-3">
             <div class="neb-kpi-icon">📈</div>
             <div class="neb-kpi-value">{recovery_rate:.0f}%</div>
             <div class="neb-kpi-label">Recovery Rate</div>
         </div>
-        <div class="neb-kpi violet neb-animate-in neb-animate-in-delay-4">
+        <div class="neb-kpi rose flare-animate-in flare-animate-in-delay-4">
             <div class="neb-kpi-icon">💾</div>
             <div class="neb-kpi-value">{leads_saved}</div>
             <div class="neb-kpi-label">Leads Saved</div>
