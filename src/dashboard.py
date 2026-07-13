@@ -1,12 +1,12 @@
 """
 dashboard.py — Missed-Lead Detector
-Nebula Dashboard — Fresh Modern Analytics Command Center.
+Solar Flare Command Center — Unique warm-ember analytics interface.
 
-Complete redesign: new colors, animations, transitions, modals,
-mobile-first responsive layout.
+Complete redesign: solar-warm palette, ember/sun/gold gradients,
+holographic depth, animated heat shimmer, and smooth micro-interactions.
 
-Design: Nebula dark theme with cyan/emerald accents, glassmorphism,
-animated gradient borders, and smooth micro-interactions.
+Design: Deep space base with warm solar flare accents, amber glow effects,
+animated gradient borders, and faceted glass elements.
 """
 
 import streamlit as st
@@ -97,7 +97,7 @@ if not st.session_state["authenticated"]:
     [data-testid="stSidebar"] { display: none !important; }
     header[data-testid="stHeader"] { display: none !important; }
     .stApp {
-        background: linear-gradient(135deg, #06060f 0%, #0a0a1e 50%, #0d0820 100%) !important;
+        background: linear-gradient(135deg, #0b0710 0%, #110d1a 50%, #0d0916 100%) !important;
         display: flex; align-items: center; justify-content: center;
     }
     </style>
@@ -108,13 +108,13 @@ if not st.session_state["authenticated"]:
     with col:
         st.markdown("""
         <div style="
-            background: rgba(12,12,29,0.85);
-            border: 1px solid rgba(0,212,255,0.18);
+            background: rgba(17,13,26,0.85);
+            border: 1px solid rgba(255,140,50,0.15);
             border-radius: 20px;
             padding: 2.8rem 2.5rem 2.2rem;
             margin-top: 8vh;
-            box-shadow: 0 0 60px rgba(0,212,255,0.07);
-            font-family: 'Space Grotesk', sans-serif;
+            box-shadow: 0 0 60px rgba(255,140,50,0.06);
+            font-family: 'Outfit', sans-serif;
         ">
             <div style="text-align:center; margin-bottom: 2rem;">
                 <div style="font-size:2.8rem; margin-bottom:0.5rem;">🔐</div>
@@ -138,117 +138,103 @@ if not st.session_state["authenticated"]:
     st.stop()  # Block everything below until authenticated
 
 # ══════════════════════════════════════════════════════════
-#  NEBULA DESIGN SYSTEM — CSS
+#  SOLAR FLARE DESIGN SYSTEM — CSS
 # ══════════════════════════════════════════════════════════
 DESIGN_CSS = """
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-    /* ═══════════════════════════════════════════════════
-       CSS VARIABLES
-    ═══════════════════════════════════════════════════ */
     :root {
-        --nebula-bg: #06060f;
-        --nebula-surface: #0c0c1d;
-        --nebula-card: rgba(12, 12, 29, 0.7);
-        --nebula-border: rgba(0, 212, 255, 0.08);
-        --nebula-border-hover: rgba(0, 212, 255, 0.2);
-        --cyan: #00d4ff;
-        --cyan-dim: rgba(0, 212, 255, 0.15);
-        --violet: #a855f7;
-        --violet-dim: rgba(168, 85, 247, 0.15);
-        --emerald: #10b981;
-        --emerald-dim: rgba(16, 185, 129, 0.15);
-        --coral: #ff6b6b;
-        --coral-dim: rgba(255, 107, 107, 0.15);
-        --amber: #fbbf24;
-        --amber-dim: rgba(251, 191, 36, 0.15);
-        --text-primary: #e8ecf1;
-        --text-secondary: #6b7a90;
-        --text-muted: #3d4a5c;
-        --glass-blur: blur(20px);
-        --radius-sm: 10px;
-        --radius-md: 16px;
-        --radius-lg: 24px;
+        --flare-bg: #0b0710;
+        --flare-surface: #110d1a;
+        --flare-card: rgba(17, 13, 26, 0.75);
+        --flare-border: rgba(255, 140, 50, 0.08);
+        --flare-border-hover: rgba(255, 140, 50, 0.25);
+        --sun-glow: #ff8c32;
+        --sun-glow-dim: rgba(255, 140, 50, 0.12);
+        --ember: #ff5e3a;
+        --ember-dim: rgba(255, 94, 58, 0.12);
+        --gold: #ffc857;
+        --gold-dim: rgba(255, 200, 87, 0.12);
+        --rose: #ff6b8a;
+        --rose-dim: rgba(255, 107, 138, 0.12);
+        --teal: #2dd4bf;
+        --teal-dim: rgba(45, 212, 191, 0.12);
+        --text-primary: #f0ece4;
+        --text-secondary: #8a7f94;
+        --text-muted: #4a3f54;
+        --radius-sm: 6px;
+        --radius-md: 14px;
+        --radius-lg: 22px;
         --radius-pill: 999px;
     }
 
-    /* ═══════════════════════════════════════════════════
-       GLOBAL
-    ═══════════════════════════════════════════════════ */
     html, body, [class*="st-"] {
-        font-family: 'Space Grotesk', -apple-system, sans-serif !important;
+        font-family: 'Outfit', -apple-system, sans-serif !important;
     }
 
     .stApp {
-        background: linear-gradient(170deg, #06060f 0%, #0a0a1e 40%, #0d0820 70%, #06060f 100%) !important;
+        background: var(--flare-bg) !important;
+        background-image:
+            radial-gradient(ellipse at 80% 20%, rgba(255, 140, 50, 0.04) 0%, transparent 60%),
+            radial-gradient(ellipse at 20% 80%, rgba(255, 94, 58, 0.03) 0%, transparent 50%),
+            radial-gradient(ellipse at 50% 50%, rgba(45, 212, 191, 0.015) 0%, transparent 40%) !important;
         color: var(--text-primary) !important;
     }
 
-    /* Scrollbar */
-    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(0, 212, 255, 0.15); border-radius: 99px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(0, 212, 255, 0.3); }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 140, 50, 0.15); border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255, 140, 50, 0.3); }
 
-    /* ═══════════════════════════════════════════════════
-       ANIMATIONS
-    ═══════════════════════════════════════════════════ */
-    @keyframes nebula-fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to   { opacity: 1; transform: translateY(0); }
+    @keyframes flare-floatUp {
+        from { opacity: 0; transform: translateY(25px) scale(0.96); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
     }
-    @keyframes nebula-slideIn {
-        from { opacity: 0; transform: translateX(-30px); }
+    @keyframes flare-slideRight {
+        from { opacity: 0; transform: translateX(-25px); }
         to   { opacity: 1; transform: translateX(0); }
     }
-    @keyframes nebula-scaleIn {
-        from { opacity: 0; transform: scale(0.9); }
-        to   { opacity: 1; transform: scale(1); }
+    @keyframes flare-scaleBounce {
+        from { opacity: 0; transform: scale(0.85) rotate(-2deg); }
+        60%  { transform: scale(1.03) rotate(0.5deg); }
+        to   { opacity: 1; transform: scale(1) rotate(0); }
     }
-    @keyframes nebula-glowPulse {
-        0%, 100% { box-shadow: 0 0 20px rgba(0, 212, 255, 0.05); }
-        50%      { box-shadow: 0 0 40px rgba(0, 212, 255, 0.12); }
+    @keyframes flare-pulseGlow {
+        0%, 100% { box-shadow: 0 0 15px rgba(255, 140, 50, 0.03); }
+        50%      { box-shadow: 0 0 35px rgba(255, 140, 50, 0.08); }
     }
-    @keyframes nebula-borderShimmer {
+    @keyframes flare-sunRise {
+        0%   { background-position: 0% 0%; opacity: 0.3; }
+        50%  { background-position: 100% 100%; opacity: 0.7; }
+        100% { background-position: 0% 0%; opacity: 0.3; }
+    }
+    @keyframes flare-heatShimmer {
         0%   { background-position: 0% 50%; }
         50%  { background-position: 100% 50%; }
         100% { background-position: 0% 50%; }
     }
-    @keyframes nebula-float {
-        0%, 100% { transform: translateY(0px); }
-        50%      { transform: translateY(-6px); }
+    @keyframes flare-warmPulse {
+        0%, 100% { transform: scale(1); opacity: 0.6; }
+        50%      { transform: scale(1.05); opacity: 1; }
     }
-    @keyframes nebula-orb {
-        0%   { transform: translate(0, 0) scale(1); }
-        33%  { transform: translate(30px, -20px) scale(1.05); }
-        66%  { transform: translate(-20px, 15px) scale(0.95); }
-        100% { transform: translate(0, 0) scale(1); }
-    }
-    @keyframes nebula-pulseDot {
+    @keyframes flare-pulseDot {
         0%, 100% { opacity: 1; transform: scale(1); }
-        50%      { opacity: 0.3; transform: scale(0.7); }
-    }
-    @keyframes nebula-shimmer {
-        0%   { background-position: -200% 0; }
-        100% { background-position: 200% 0; }
+        50%      { opacity: 0.3; transform: scale(0.6); }
     }
 
-    .neb-animate-in {
-        animation: nebula-fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    .flare-animate-in {
+        animation: flare-floatUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
-    .neb-animate-in-delay-1 { animation-delay: 0.1s; }
-    .neb-animate-in-delay-2 { animation-delay: 0.2s; }
-    .neb-animate-in-delay-3 { animation-delay: 0.3s; }
-    .neb-animate-in-delay-4 { animation-delay: 0.4s; }
-    .neb-animate-in-delay-5 { animation-delay: 0.5s; }
+    .flare-animate-in-delay-1 { animation-delay: 0.08s; }
+    .flare-animate-in-delay-2 { animation-delay: 0.16s; }
+    .flare-animate-in-delay-3 { animation-delay: 0.24s; }
+    .flare-animate-in-delay-4 { animation-delay: 0.32s; }
+    .flare-animate-in-delay-5 { animation-delay: 0.4s; }
 
-    /* ═══════════════════════════════════════════════════
-       SIDEBAR
-    ═══════════════════════════════════════════════════ */
     section[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #08081a 0%, #0c0c24 100%) !important;
-        border-right: 1px solid var(--nebula-border) !important;
+        background: linear-gradient(180deg, #0d0916 0%, #110d1e 50%, #0d0916 100%) !important;
+        border-right: 1px solid var(--flare-border) !important;
     }
     section[data-testid="stSidebar"] .stMarkdown p,
     section[data-testid="stSidebar"] .stMarkdown h2,
@@ -257,46 +243,43 @@ DESIGN_CSS = """
         color: var(--text-primary) !important;
     }
     section[data-testid="stSidebar"] hr {
-        border-color: var(--nebula-border) !important;
+        border-color: var(--flare-border) !important;
     }
 
-    /* ═══════════════════════════════════════════════════
-       HEADER
-    ═══════════════════════════════════════════════════ */
     .neb-header {
         position: relative;
-        background: var(--nebula-card);
-        backdrop-filter: var(--glass-blur);
-        border: 1px solid var(--nebula-border);
+        background: linear-gradient(135deg, rgba(17, 13, 26, 0.8), rgba(25, 15, 25, 0.8));
+        backdrop-filter: blur(16px);
+        border: 1px solid var(--flare-border);
         border-radius: var(--radius-lg);
         padding: 2.5rem 2.5rem 2rem;
         margin-bottom: 2rem;
         overflow: hidden;
-        animation: nebula-glowPulse 6s ease-in-out infinite;
+        animation: flare-pulseGlow 5s ease-in-out infinite;
     }
     .neb-header::before {
         content: '';
         position: absolute;
-        top: -100px; right: -80px;
-        width: 400px; height: 400px;
-        background: radial-gradient(circle, rgba(0, 212, 255, 0.08) 0%, rgba(168, 85, 247, 0.04) 40%, transparent 70%);
-        animation: nebula-orb 12s ease-in-out infinite;
+        top: -150px; right: -100px;
+        width: 500px; height: 500px;
+        background: radial-gradient(circle, rgba(255, 140, 50, 0.06) 0%, rgba(255, 94, 58, 0.03) 30%, transparent 60%);
+        animation: flare-sunRise 15s ease-in-out infinite;
+        background-size: 200% 200%;
         pointer-events: none;
     }
     .neb-header::after {
         content: '';
         position: absolute;
-        bottom: -60px; left: -40px;
-        width: 250px; height: 250px;
-        background: radial-gradient(circle, rgba(16, 185, 129, 0.06) 0%, transparent 70%);
-        animation: nebula-orb 10s ease-in-out infinite reverse;
+        bottom: -80px; left: -60px;
+        width: 200px; height: 200px;
+        background: radial-gradient(circle, rgba(45, 212, 191, 0.03) 0%, transparent 70%);
         pointer-events: none;
     }
     .neb-header h1 {
-        font-weight: 700;
-        font-size: 2.2rem;
-        letter-spacing: -0.03em;
-        background: linear-gradient(135deg, var(--text-primary) 0%, var(--cyan) 50%, var(--violet) 100%);
+        font-weight: 800;
+        font-size: 2rem;
+        letter-spacing: -0.04em;
+        background: linear-gradient(135deg, var(--text-primary) 0%, var(--sun-glow) 40%, var(--ember) 70%, var(--gold) 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         margin: 0;
@@ -305,67 +288,60 @@ DESIGN_CSS = """
     }
     .neb-header p {
         color: var(--text-secondary);
-        margin-top: 0.5rem;
-        font-size: 1rem;
-        font-weight: 400;
+        margin-top: 0.4rem;
+        font-size: 0.95rem;
+        font-weight: 300;
         margin-bottom: 0;
         position: relative;
         z-index: 1;
     }
 
-    /* ═══════════════════════════════════════════════════
-       GLASS CARDS
-    ═══════════════════════════════════════════════════ */
     .neb-card {
         position: relative;
-        background: var(--nebula-card);
-        backdrop-filter: var(--glass-blur);
-        border: 1px solid var(--nebula-border);
+        background: var(--flare-card);
+        backdrop-filter: blur(14px);
+        border: 1px solid var(--flare-border);
         border-radius: var(--radius-md);
         padding: 1.5rem;
         margin-bottom: 1.5rem;
-        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        animation: nebula-fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+        transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        animation: flare-floatUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
     .neb-card:hover {
-        border-color: var(--nebula-border-hover);
-        transform: translateY(-2px);
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(0, 212, 255, 0.03);
+        border-color: var(--flare-border-hover);
+        transform: translateY(-3px);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 40px rgba(255, 140, 50, 0.04);
     }
 
-    /* Animated gradient border card */
     .neb-card-glow {
         position: relative;
-        background: var(--nebula-card);
-        backdrop-filter: var(--glass-blur);
+        background: var(--flare-card);
+        backdrop-filter: blur(14px);
         border-radius: var(--radius-md);
         padding: 1.5rem;
         margin-bottom: 1.5rem;
-        animation: nebula-fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+        animation: flare-floatUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
     .neb-card-glow::before {
         content: '';
         position: absolute;
         inset: -1px;
         border-radius: var(--radius-md);
-        background: linear-gradient(135deg, var(--cyan), var(--violet), var(--emerald), var(--cyan));
-        background-size: 300% 300%;
-        animation: nebula-borderShimmer 6s ease infinite;
+        background: linear-gradient(135deg, var(--sun-glow), var(--rose), var(--ember), var(--gold), var(--sun-glow));
+        background-size: 400% 400%;
+        animation: flare-heatShimmer 8s ease infinite;
         z-index: -1;
-        opacity: 0.4;
+        opacity: 0.5;
     }
     .neb-card-glow::after {
         content: '';
         position: absolute;
         inset: 0;
         border-radius: calc(var(--radius-md) - 1px);
-        background: var(--nebula-card);
+        background: var(--flare-card);
         z-index: -1;
     }
 
-    /* ═══════════════════════════════════════════════════
-       KPI CARDS
-    ═══════════════════════════════════════════════════ */
     .neb-kpi-row {
         display: flex;
         gap: 1rem;
@@ -373,18 +349,18 @@ DESIGN_CSS = """
     }
     .neb-kpi {
         flex: 1;
-        background: var(--nebula-card);
-        backdrop-filter: var(--glass-blur);
-        border: 1px solid var(--nebula-border);
+        background: var(--flare-card);
+        backdrop-filter: blur(14px);
+        border: 1px solid var(--flare-border);
         border-radius: var(--radius-md);
         padding: 1.25rem 1.5rem;
         position: relative;
         overflow: hidden;
-        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .neb-kpi:hover {
-        transform: translateY(-4px) scale(1.02);
-        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
     }
     .neb-kpi::before {
         content: '';
@@ -396,99 +372,94 @@ DESIGN_CSS = """
     .neb-kpi::after {
         content: '';
         position: absolute;
-        top: -20px; right: -20px;
-        width: 80px; height: 80px;
+        top: -30px; right: -30px;
+        width: 100px; height: 100px;
         border-radius: 50%;
-        opacity: 0.06;
-        transition: all 0.4s ease;
+        opacity: 0.05;
+        transition: all 0.6s ease;
     }
     .neb-kpi:hover::after {
-        transform: scale(1.5);
-        opacity: 0.1;
+        transform: scale(2);
+        opacity: 0.12;
     }
 
-    .neb-kpi.cyan::before   { background: linear-gradient(90deg, var(--cyan), #0891b2); }
-    .neb-kpi.cyan::after    { background: var(--cyan); }
-    .neb-kpi.coral::before  { background: linear-gradient(90deg, var(--coral), #e11d48); }
-    .neb-kpi.coral::after   { background: var(--coral); }
-    .neb-kpi.emerald::before{ background: linear-gradient(90deg, var(--emerald), #059669); }
-    .neb-kpi.emerald::after { background: var(--emerald); }
-    .neb-kpi.amber::before  { background: linear-gradient(90deg, var(--amber), #d97706); }
-    .neb-kpi.amber::after   { background: var(--amber); }
-    .neb-kpi.violet::before { background: linear-gradient(90deg, var(--violet), #7c3aed); }
-    .neb-kpi.violet::after  { background: var(--violet); }
+    .neb-kpi.sun::before    { background: linear-gradient(90deg, var(--sun-glow), #e07c30); }
+    .neb-kpi.sun::after     { background: var(--sun-glow); }
+    .neb-kpi.ember::before  { background: linear-gradient(90deg, var(--ember), #d6442a); }
+    .neb-kpi.ember::after   { background: var(--ember); }
+    .neb-kpi.teal::before   { background: linear-gradient(90deg, var(--teal), #1fa893); }
+    .neb-kpi.teal::after    { background: var(--teal); }
+    .neb-kpi.gold::before   { background: linear-gradient(90deg, var(--gold), #d4a032); }
+    .neb-kpi.gold::after    { background: var(--gold); }
+    .neb-kpi.rose::before   { background: linear-gradient(90deg, var(--rose), #d94a6a); }
+    .neb-kpi.rose::after    { background: var(--rose); }
 
     .neb-kpi-icon {
-        font-size: 1.5rem;
-        margin-bottom: 0.5rem;
-        animation: nebula-float 3s ease-in-out infinite;
+        font-size: 1.4rem;
+        margin-bottom: 0.4rem;
+        display: inline-block;
+        animation: flare-warmPulse 4s ease-in-out infinite;
     }
     .neb-kpi-value {
         font-size: 2rem;
         font-weight: 700;
         line-height: 1;
-        letter-spacing: -0.02em;
+        letter-spacing: -0.03em;
         font-family: 'JetBrains Mono', monospace;
     }
     .neb-kpi-label {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         color: var(--text-secondary);
         margin-top: 0.5rem;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.1em;
     }
-    .neb-kpi.cyan .neb-kpi-value    { color: var(--cyan); }
-    .neb-kpi.coral .neb-kpi-value   { color: var(--coral); }
-    .neb-kpi.emerald .neb-kpi-value { color: var(--emerald); }
-    .neb-kpi.amber .neb-kpi-value   { color: var(--amber); }
-    .neb-kpi.violet .neb-kpi-value  { color: var(--violet); }
+    .neb-kpi.sun .neb-kpi-value   { color: var(--sun-glow); }
+    .neb-kpi.ember .neb-kpi-value { color: var(--ember); }
+    .neb-kpi.teal .neb-kpi-value  { color: var(--teal); }
+    .neb-kpi.gold .neb-kpi-value  { color: var(--gold); }
+    .neb-kpi.rose .neb-kpi-value  { color: var(--rose); }
 
-    /* ═══════════════════════════════════════════════════
-       BADGES
-    ═══════════════════════════════════════════════════ */
     .neb-badge {
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
-        padding: 0.35rem 0.9rem;
+        padding: 0.3rem 0.85rem;
         border-radius: var(--radius-pill);
-        font-size: 0.72rem;
+        font-size: 0.68rem;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.06em;
+        letter-spacing: 0.08em;
     }
     .neb-badge-live {
-        background: var(--emerald-dim);
-        color: var(--emerald);
-        border: 1px solid rgba(16, 185, 129, 0.25);
+        background: var(--teal-dim);
+        color: var(--teal);
+        border: 1px solid rgba(45, 212, 191, 0.2);
     }
     .neb-badge-live::before {
         content: '';
-        width: 7px; height: 7px;
-        background: var(--emerald);
+        width: 6px; height: 6px;
+        background: var(--teal);
         border-radius: 50%;
-        animation: nebula-pulseDot 2s infinite;
+        animation: flare-pulseDot 1.8s infinite;
     }
     .neb-badge-demo {
-        background: var(--amber-dim);
-        color: var(--amber);
-        border: 1px solid rgba(251, 191, 36, 0.25);
+        background: var(--gold-dim);
+        color: var(--gold);
+        border: 1px solid rgba(255, 200, 87, 0.2);
     }
 
-    /* ═══════════════════════════════════════════════════
-       BUTTONS
-    ═══════════════════════════════════════════════════ */
     .stButton > button {
-        background: linear-gradient(135deg, rgba(12, 12, 29, 0.8), rgba(20, 20, 40, 0.8)) !important;
+        background: linear-gradient(135deg, rgba(17, 13, 26, 0.9), rgba(25, 18, 30, 0.9)) !important;
         color: var(--text-primary) !important;
-        border: 1px solid var(--nebula-border) !important;
+        border: 1px solid var(--flare-border) !important;
         border-radius: var(--radius-pill) !important;
-        padding: 0.55rem 1.75rem !important;
+        padding: 0.5rem 1.6rem !important;
         font-weight: 600 !important;
-        font-family: 'Space Grotesk', sans-serif !important;
+        font-family: 'Outfit', sans-serif !important;
         letter-spacing: 0.02em !important;
-        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
         position: relative;
         overflow: hidden;
     }
@@ -496,130 +467,110 @@ DESIGN_CSS = """
         content: '';
         position: absolute;
         inset: 0;
-        background: linear-gradient(135deg, var(--cyan), var(--violet));
+        background: linear-gradient(135deg, var(--sun-glow), var(--ember));
         opacity: 0;
-        transition: opacity 0.3s ease;
+        transition: opacity 0.4s ease;
         border-radius: inherit;
     }
     .stButton > button:hover {
-        border-color: var(--cyan) !important;
+        border-color: var(--sun-glow) !important;
         color: #ffffff !important;
-        box-shadow: 0 4px 20px rgba(0, 212, 255, 0.15), 0 0 40px rgba(0, 212, 255, 0.05) !important;
+        box-shadow: 0 4px 25px rgba(255, 140, 50, 0.15), 0 0 50px rgba(255, 140, 50, 0.04) !important;
         transform: translateY(-2px) !important;
     }
     .stButton > button:hover::before {
-        opacity: 0.15;
-    }
-    .stButton > button:active {
-        transform: translateY(0) !important;
+        opacity: 0.12;
     }
     .stButton > button[data-testid="stBaseButton-primary"] {
-        background: linear-gradient(135deg, var(--cyan), #0891b2) !important;
+        background: linear-gradient(135deg, var(--sun-glow), var(--ember)) !important;
         color: #ffffff !important;
         border: none !important;
-        box-shadow: 0 4px 20px rgba(0, 212, 255, 0.25) !important;
+        box-shadow: 0 4px 25px rgba(255, 140, 50, 0.25) !important;
     }
     .stButton > button[data-testid="stBaseButton-primary"]:hover {
-        background: linear-gradient(135deg, #22d3ee, var(--cyan)) !important;
-        box-shadow: 0 6px 30px rgba(0, 212, 255, 0.35) !important;
-        transform: translateY(-2px) !important;
-    }
-    .stButton > button[data-testid="stBaseButton-primary"]::before {
-        background: linear-gradient(135deg, #22d3ee, #06b6d4) !important;
+        background: linear-gradient(135deg, #ffa050, var(--sun-glow)) !important;
+        box-shadow: 0 6px 35px rgba(255, 140, 50, 0.35) !important;
     }
 
-    /* Danger button */
     .neb-btn-danger > button {
-        background: linear-gradient(135deg, rgba(255, 107, 107, 0.15), rgba(225, 29, 72, 0.15)) !important;
-        border-color: rgba(255, 107, 107, 0.3) !important;
-        color: var(--coral) !important;
+        background: linear-gradient(135deg, rgba(255, 94, 58, 0.1), rgba(214, 68, 42, 0.1)) !important;
+        border-color: rgba(255, 94, 58, 0.25) !important;
+        color: var(--ember) !important;
     }
     .neb-btn-danger > button:hover {
-        border-color: var(--coral) !important;
-        box-shadow: 0 4px 20px rgba(255, 107, 107, 0.15) !important;
+        border-color: var(--ember) !important;
+        box-shadow: 0 4px 20px rgba(255, 94, 58, 0.15) !important;
     }
 
-    /* ═══════════════════════════════════════════════════
-       INPUTS
-    ═══════════════════════════════════════════════════ */
     div[data-baseweb="select"] > div,
     div[data-baseweb="input"] input,
     textarea {
-        background: rgba(12, 12, 29, 0.6) !important;
-        border: 1px solid var(--nebula-border) !important;
+        background: rgba(17, 13, 26, 0.6) !important;
+        border: 1px solid var(--flare-border) !important;
         color: var(--text-primary) !important;
         border-radius: var(--radius-sm) !important;
-        font-family: 'Space Grotesk', sans-serif !important;
+        font-family: 'Outfit', sans-serif !important;
         transition: border-color 0.3s ease, box-shadow 0.3s ease !important;
     }
     div[data-baseweb="select"] > div:hover,
     div[data-baseweb="input"] input:hover,
     textarea:hover {
-        border-color: var(--nebula-border-hover) !important;
+        border-color: var(--flare-border-hover) !important;
     }
     div[data-baseweb="select"] > div:focus-within,
-    div[data-baseweb="input"] input:focus-within,
-    textarea:focus-within {
-        border-color: var(--cyan) !important;
-        box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.08) !important;
+    div[data-baseweb="input"] input:focus,
+    textarea:focus {
+        border-color: var(--sun-glow) !important;
+        box-shadow: 0 0 0 3px rgba(255, 140, 50, 0.06) !important;
     }
 
-    /* ═══════════════════════════════════════════════════
-       NOTIFICATION CARDS
-    ═══════════════════════════════════════════════════ */
     .neb-notif {
-        background: rgba(12, 12, 29, 0.5);
-        border: 1px solid var(--nebula-border);
-        border-left: 3px solid var(--cyan);
+        background: rgba(17, 13, 26, 0.5);
+        border: 1px solid var(--flare-border);
+        border-left: 3px solid var(--sun-glow);
         border-radius: var(--radius-sm);
-        padding: 0.9rem 1.1rem;
+        padding: 0.85rem 1.1rem;
         margin-bottom: 0.6rem;
         transition: all 0.3s ease;
-        animation: nebula-slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+        animation: flare-slideRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
     .neb-notif:hover {
-        background: rgba(20, 20, 40, 0.5);
-        border-left-color: var(--cyan);
-        transform: translateX(4px);
+        background: rgba(25, 18, 35, 0.5);
+        border-left-color: var(--sun-glow);
+        transform: translateX(5px);
     }
-    .neb-notif.new_lead   { border-left-color: var(--cyan); }
-    .neb-notif.auto_reply { border-left-color: var(--emerald); }
-    .neb-notif.overdue    { border-left-color: var(--coral); }
-    .neb-notif.info       { border-left-color: var(--violet); }
+    .neb-notif.new_lead   { border-left-color: var(--sun-glow); }
+    .neb-notif.auto_reply { border-left-color: var(--teal); }
+    .neb-notif.overdue    { border-left-color: var(--ember); }
+    .neb-notif.info       { border-left-color: var(--rose); }
 
-    /* ═══════════════════════════════════════════════════
-       TERMINAL OUTPUT
-    ═══════════════════════════════════════════════════ */
     .neb-terminal {
-        background: #06060f !important;
-        border: 1px solid var(--nebula-border) !important;
+        background: #07040d !important;
+        border: 1px solid var(--flare-border) !important;
         border-radius: var(--radius-md) !important;
-        padding: 1.25rem !important;
+        padding: 1.2rem !important;
         font-family: 'JetBrains Mono', monospace !important;
-        font-size: 0.8rem !important;
-        color: var(--emerald) !important;
-        box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.5) !important;
+        font-size: 0.78rem !important;
+        color: var(--gold) !important;
+        box-shadow: inset 0 2px 15px rgba(0, 0, 0, 0.5) !important;
         line-height: 1.6 !important;
         max-height: 400px;
         overflow-y: auto;
     }
 
-    /* ═══════════════════════════════════════════════════
-       EMAIL MOCK
-    ═══════════════════════════════════════════════════ */
     .neb-email {
-        background: var(--nebula-card);
-        border: 1px solid var(--nebula-border);
+        background: var(--flare-card);
+        border: 1px solid var(--flare-border);
         border-radius: var(--radius-md);
         padding: 1.25rem;
         margin-top: 1rem;
-        animation: nebula-scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+        animation: flare-scaleBounce 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
     .neb-email-header {
-        border-bottom: 1px solid var(--nebula-border);
+        border-bottom: 1px solid var(--flare-border);
         padding-bottom: 0.75rem;
         margin-bottom: 0.75rem;
-        font-size: 0.82rem;
+        font-size: 0.8rem;
         color: var(--text-secondary);
     }
     .neb-email-header span { color: var(--text-primary); font-weight: 500; }
@@ -630,23 +581,20 @@ DESIGN_CSS = """
         white-space: pre-wrap;
     }
 
-    /* ═══════════════════════════════════════════════════
-       TABS
-    ═══════════════════════════════════════════════════ */
     .stTabs [data-baseweb="tab-list"] {
         gap: 0.4rem;
-        background: var(--nebula-card);
+        background: var(--flare-card);
         border-radius: var(--radius-sm);
         padding: 0.3rem;
-        border: 1px solid var(--nebula-border);
+        border: 1px solid var(--flare-border);
     }
     .stTabs [data-baseweb="tab"] {
         background: transparent;
         border-radius: 8px;
         color: var(--text-secondary) !important;
-        font-weight: 600;
-        font-family: 'Space Grotesk', sans-serif;
-        padding: 0.4rem 1.25rem;
+        font-weight: 500;
+        font-family: 'Outfit', sans-serif;
+        padding: 0.35rem 1.1rem;
         border: none !important;
         transition: all 0.3s ease;
     }
@@ -654,63 +602,48 @@ DESIGN_CSS = """
         color: var(--text-primary) !important;
     }
     .stTabs [aria-selected="true"] {
-        background: var(--cyan-dim) !important;
-        color: var(--cyan) !important;
-        border: 1px solid rgba(0, 212, 255, 0.2) !important;
+        background: var(--sun-glow-dim) !important;
+        color: var(--sun-glow) !important;
+        border: 1px solid rgba(255, 140, 50, 0.15) !important;
     }
 
-    /* ═══════════════════════════════════════════════════
-       MODAL / DIALOG
-    ═══════════════════════════════════════════════════ */
     [data-testid="stDialog"] {
-        background: var(--nebula-card) !important;
-        border: 1px solid var(--nebula-border) !important;
+        background: var(--flare-card) !important;
+        border: 1px solid var(--flare-border) !important;
         border-radius: var(--radius-lg) !important;
-        backdrop-filter: var(--glass-blur) !important;
+        backdrop-filter: blur(16px) !important;
     }
 
-    /* ═══════════════════════════════════════════════════
-       SIDEBAR STATUS
-    ═══════════════════════════════════════════════════ */
     .neb-sidebar-box {
-        background: rgba(12, 12, 29, 0.5);
-        border: 1px solid var(--nebula-border);
+        background: rgba(17, 13, 26, 0.5);
+        border: 1px solid var(--flare-border);
         border-radius: var(--radius-sm);
-        padding: 0.85rem 1rem;
-        font-size: 0.82rem;
+        padding: 0.8rem 1rem;
+        font-size: 0.8rem;
         line-height: 1.8;
     }
 
-    /* ═══════════════════════════════════════════════════
-       HIDE DEFAULT ELEMENTS
-    ═══════════════════════════════════════════════════ */
     #MainMenu, footer { visibility: hidden; }
 
-    /* ═══════════════════════════════════════════════════
-       FOOTER
-    ═══════════════════════════════════════════════════ */
     .neb-footer {
         text-align: center;
         padding: 2.5rem 0 1.5rem 0;
         color: var(--text-muted);
-        font-size: 0.75rem;
-        border-top: 1px solid var(--nebula-border);
+        font-size: 0.72rem;
+        border-top: 1px solid var(--flare-border);
         margin-top: 4rem;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.06em;
     }
 
-    /* ═══════════════════════════════════════════════════
-       METRIC OVERRIDES
-    ═══════════════════════════════════════════════════ */
     [data-testid="stMetric"] {
-        background: var(--nebula-card);
-        border: 1px solid var(--nebula-border);
+        background: var(--flare-card);
+        border: 1px solid var(--flare-border);
         border-radius: var(--radius-sm);
         padding: 1rem;
         transition: all 0.3s ease;
     }
     [data-testid="stMetric"]:hover {
-        border-color: var(--nebula-border-hover);
+        border-color: var(--flare-border-hover);
         transform: translateY(-2px);
     }
     [data-testid="stMetricValue"] {
@@ -721,47 +654,26 @@ DESIGN_CSS = """
         color: var(--text-secondary) !important;
     }
 
-    /* ═══════════════════════════════════════════════════
-       MOBILE RESPONSIVE
-    ═══════════════════════════════════════════════════ */
     @media (max-width: 768px) {
         .neb-header {
             padding: 1.5rem 1.25rem 1.25rem;
             border-radius: var(--radius-md);
         }
-        .neb-header h1 {
-            font-size: 1.5rem;
-        }
-        .neb-header p {
-            font-size: 0.85rem;
-        }
-        .neb-kpi-row {
-            flex-wrap: wrap;
-        }
+        .neb-header h1 { font-size: 1.5rem; }
+        .neb-header p { font-size: 0.85rem; }
+        .neb-kpi-row { flex-wrap: wrap; }
         .neb-kpi {
             flex: 1 1 calc(50% - 0.5rem);
             min-width: calc(50% - 0.5rem);
             padding: 1rem;
         }
-        .neb-kpi-value {
-            font-size: 1.5rem;
-        }
-        .neb-card {
-            padding: 1.25rem;
-            border-radius: var(--radius-sm);
-        }
-        .neb-footer {
-            padding: 1.5rem 1rem 1rem;
-        }
+        .neb-kpi-value { font-size: 1.4rem; }
+        .neb-card { padding: 1.25rem; border-radius: var(--radius-sm); }
+        .neb-footer { padding: 1.5rem 1rem 1rem; }
     }
     @media (max-width: 480px) {
-        .neb-kpi {
-            flex: 1 1 100%;
-            min-width: 100%;
-        }
-        .neb-header h1 {
-            font-size: 1.3rem;
-        }
+        .neb-kpi { flex: 1 1 100%; min-width: 100%; }
+        .neb-header h1 { font-size: 1.3rem; }
     }
 </style>
 """
@@ -866,7 +778,7 @@ def show_lead_dialog(lead_data, has_gmail_headers):
                 channel=lead_data.get("channel", "Email"),
             )
             st.markdown(f"""
-            <span class="neb-badge" style="background: var(--cyan-dim); color: var(--cyan); border: 1px solid rgba(0,212,255,0.2); margin-bottom: 1rem;">
+            <span class="neb-badge" style="background: var(--sun-glow-dim); color: var(--sun-glow); border: 1px solid rgba(255,140,50,0.2); margin-bottom: 1rem;">
                 Intent: {reply_payload['detected_intent'].upper()}
             </span>
             """, unsafe_allow_html=True)
@@ -891,7 +803,7 @@ status_label = "Gmail Connected — Live" if live_connected else "Gmail Not Conn
 status_class = "neb-badge-live" if live_connected else "neb-badge-demo"
 
 st.markdown(f"""
-<div class="neb-header neb-animate-in">
+<div class="neb-header flare-animate-in">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
         <h1>Missed-Lead Command Center</h1>
         <span class="neb-badge {status_class}">{status_label}</span>
@@ -922,7 +834,7 @@ with st.sidebar:
     <div class="neb-sidebar-box">
         <div><b>Gmail</b>: {inbox_icon} {'Active' if live_connected else 'Off'}</div>
         <div><b>Scored</b>: {len(leads_df)} leads</div>
-        <div><b>Alerts</b>: <span style="color: {'var(--coral)' if len(unread_notifs) > 0 else 'var(--text-secondary)'}; font-weight: bold;">{len(unread_notifs)}</span></div>
+        <div><b>Alerts</b>: <span style="color: {'var(--ember)' if len(unread_notifs) > 0 else 'var(--text-secondary)'}; font-weight: bold;">{len(unread_notifs)}</span></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -951,20 +863,20 @@ if page == "Command Center":
     if total_leads == 0:
         st.markdown(f"""
         <div class="neb-card-glow" style="text-align:center; padding: 3rem 2rem;">
-            <div style="font-size: 3.5rem; margin-bottom: 1rem; animation: nebula-float 3s ease-in-out infinite;">📬</div>
+            <div style="font-size: 3.5rem; margin-bottom: 1rem; animation: flare-warmPulse 3s ease-in-out infinite;">📬</div>
             <h2 style="color: var(--text-primary); margin-bottom: 0.5rem; font-weight: 700;">No Inbox Data Yet</h2>
             <p style="color: var(--text-secondary); font-size: 1rem; max-width: 520px; margin: 0 auto;">
                 Connect your Gmail account to start scanning real customer emails.
             </p>
             <div style="margin-top: 1.5rem; padding: 1.25rem; background: rgba(12,12,29,0.5); border-radius: var(--radius-md); border: 1px solid var(--nebula-border); max-width: 550px; margin-left: auto; margin-right: auto; text-align: left;">
-                <p style="color: var(--amber); font-weight: 600; margin-bottom: 0.75rem;">⚡ Setup Steps:</p>
+                <p style="color: var(--gold); font-weight: 600; margin-bottom: 0.75rem;">⚡ Setup Steps:</p>
                 <p style="color: var(--text-secondary); font-size: 0.85rem; line-height: 2;">
                     1. Enable 2FA on your Gmail and generate an App Password<br>
                     2. Add these to Streamlit Cloud secrets:<br>
-                    &nbsp;&nbsp;&nbsp;• <code style="color:var(--cyan);">IMAP_USER</code> = your Gmail<br>
-                    &nbsp;&nbsp;&nbsp;• <code style="color:var(--cyan);">IMAP_PASS</code> = App Password<br>
-                    &nbsp;&nbsp;&nbsp;• <code style="color:var(--cyan);">SMTP_USER</code> = your Gmail<br>
-                    &nbsp;&nbsp;&nbsp;• <code style="color:var(--cyan);">SMTP_PASS</code> = App Password<br>
+                    &nbsp;&nbsp;&nbsp;• <code style="color:var(--sun-glow);">IMAP_USER</code> = your Gmail<br>
+                    &nbsp;&nbsp;&nbsp;• <code style="color:var(--sun-glow);">IMAP_PASS</code> = App Password<br>
+                    &nbsp;&nbsp;&nbsp;• <code style="color:var(--sun-glow);">SMTP_USER</code> = your Gmail<br>
+                    &nbsp;&nbsp;&nbsp;• <code style="color:var(--sun-glow);">SMTP_PASS</code> = App Password<br>
                     3. Click "Trigger Scan Now" to fetch emails
                 </p>
             </div>
@@ -1218,7 +1130,7 @@ elif page == "Lead Explorer":
             d_col1, d_col2 = st.columns([1, 1])
 
             with d_col1:
-                st.markdown("<div style='background:rgba(12,12,29,0.4); padding:1.25rem; border-radius:var(--radius-sm); border:1px solid var(--nebula-border);'>", unsafe_allow_html=True)
+                st.markdown("<div style='background:rgba(17,13,26,0.4); padding:1.25rem; border-radius:var(--radius-sm); border:1px solid var(--flare-border);'>", unsafe_allow_html=True)
                 st.markdown(f"**Lead ID:** `{lead_row.get('lead_id', 'N/A')}`")
 
                 if has_gmail_headers:
@@ -1249,7 +1161,7 @@ elif page == "Lead Explorer":
                         channel=lead_row.get("channel", "Email"),
                     )
                     st.markdown(f"""
-                    <span class="neb-badge" style="background: var(--cyan-dim); color: var(--cyan); border: 1px solid rgba(0,212,255,0.2); margin-bottom: 1rem;">
+                    <span class="neb-badge" style="background: var(--sun-glow-dim); color: var(--sun-glow); border: 1px solid rgba(255,140,50,0.2); margin-bottom: 1rem;">
                         Intent: {reply_payload['detected_intent'].upper()}
                     </span>
                     """, unsafe_allow_html=True)
@@ -1562,17 +1474,17 @@ elif page == "Performance Overview":
     saved_col1, saved_col2 = st.columns(2)
     with saved_col1:
         st.markdown(f"""
-        <div style="background: var(--coral-dim); border:1px solid rgba(255,107,107,0.15); border-radius:var(--radius-md); padding:1.25rem; text-align:center;">
-            <div style="font-size:0.72rem; color:var(--coral); text-transform:uppercase; letter-spacing:0.06em; font-weight:600; margin-bottom:0.5rem;">Without System</div>
-            <div style="font-size:2.5rem; font-weight:700; color:var(--coral); font-family:'JetBrains Mono',monospace;">{missed_total}</div>
+        <div style="background: var(--ember-dim); border:1px solid rgba(255,94,58,0.15); border-radius:var(--radius-md); padding:1.25rem; text-align:center;">
+            <div style="font-size:0.72rem; color:var(--ember); text-transform:uppercase; letter-spacing:0.06em; font-weight:600; margin-bottom:0.5rem;">Without System</div>
+            <div style="font-size:2.5rem; font-weight:700; color:var(--ember); font-family:'JetBrains Mono',monospace;">{missed_total}</div>
             <div style="font-size:0.82rem; color:var(--text-secondary); margin-top:0.25rem;">leads would have been lost</div>
         </div>
         """, unsafe_allow_html=True)
     with saved_col2:
         st.markdown(f"""
-        <div style="background: var(--emerald-dim); border:1px solid rgba(16,185,129,0.15); border-radius:var(--radius-md); padding:1.25rem; text-align:center;">
-            <div style="font-size:0.72rem; color:var(--emerald); text-transform:uppercase; letter-spacing:0.06em; font-weight:600; margin-bottom:0.5rem;">With System</div>
-            <div style="font-size:2.5rem; font-weight:700; color:var(--emerald); font-family:'JetBrains Mono',monospace;">{leads_saved}</div>
+        <div style="background: var(--teal-dim); border:1px solid rgba(45,212,191,0.15); border-radius:var(--radius-md); padding:1.25rem; text-align:center;">
+            <div style="font-size:0.72rem; color:var(--teal); text-transform:uppercase; letter-spacing:0.06em; font-weight:600; margin-bottom:0.5rem;">With System</div>
+            <div style="font-size:2.5rem; font-weight:700; color:var(--teal); font-family:'JetBrains Mono',monospace;">{leads_saved}</div>
             <div style="font-size:0.82rem; color:var(--text-secondary); margin-top:0.25rem;">leads recovered via auto-reply</div>
         </div>
         """, unsafe_allow_html=True)
@@ -1624,7 +1536,7 @@ elif page == "Performance Overview":
                 gauge={
                     "axis": {"range": [0, 100], "tickcolor": "#6b7a90"},
                     "bar": {"color": "#10b981"},
-                    "bgcolor": "rgba(12,12,29,0.5)",
+                    "bgcolor": "rgba(17,13,26,0.5)",
                     "steps": [
                         {"range": [0, 50], "color": "rgba(255,107,107,0.12)"},
                         {"range": [50, 80], "color": "rgba(251,191,36,0.12)"},
