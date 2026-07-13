@@ -63,8 +63,12 @@ st.set_page_config(
 # ══════════════════════════════════════════════════════════
 #  LOGIN GATE — must pass before ANY other UI renders
 # ══════════════════════════════════════════════════════════
-_AUTH_USER = "jaivijai"
-_AUTH_PASS = "12345678"
+# Credentials come from Streamlit secrets or env vars.
+# Set AUTH_USER / AUTH_PASS in Streamlit Cloud secrets (Settings > Secrets).
+# NOTE: In Streamlit Cloud, `st.secrets` is the recommended approach.
+#       On local/other deployments, env vars are used as fallback.
+_AUTH_USER = st.secrets.get("AUTH_USER", os.getenv("AUTH_USER", "admin"))
+_AUTH_PASS = st.secrets.get("AUTH_PASS", os.getenv("AUTH_PASS", "admin"))
 
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
@@ -1008,10 +1012,10 @@ if page == "Command Center":
                     # email_reader.py / inbox_monitor.py can connect to Gmail.
                     # Priority: environment variable already set > .bat config fallback.
                     scan_env = os.environ.copy()
-                    scan_env.setdefault("IMAP_USER",  os.getenv("IMAP_USER",  "jaivijai188@gmail.com"))
-                    scan_env.setdefault("IMAP_PASS",  os.getenv("IMAP_PASS",  "ldwc atxe rgjc eepa"))
-                    scan_env.setdefault("SMTP_USER",  os.getenv("SMTP_USER",  "jaivijai188@gmail.com"))
-                    scan_env.setdefault("SMTP_PASS",  os.getenv("SMTP_PASS",  "ldwc atxe rgjc eepa"))
+                    scan_env.setdefault("IMAP_USER",  os.getenv("IMAP_USER",  st.secrets.get("IMAP_USER", "")))
+                    scan_env.setdefault("IMAP_PASS",  os.getenv("IMAP_PASS",  st.secrets.get("IMAP_PASS", "")))
+                    scan_env.setdefault("SMTP_USER",  os.getenv("SMTP_USER",  st.secrets.get("SMTP_USER", "")))
+                    scan_env.setdefault("SMTP_PASS",  os.getenv("SMTP_PASS",  st.secrets.get("SMTP_PASS", "")))
                     scan_env.setdefault("SENDER_NAME", os.getenv("SENDER_NAME", "Sales Team"))
                     scan_env["STREAMLIT_SERVER_HEADLESS"] = "true"
 
@@ -1700,11 +1704,11 @@ elif page == "Workflow Settings":
     st.markdown("#### 🔒 Environment Variables")
 
     env_list = {
-        "SMTP_USER": os.getenv("SMTP_USER", ""),
+        "SMTP_USER": os.getenv("SMTP_USER", st.secrets.get("SMTP_USER", "")),
         "SMTP_HOST": os.getenv("SMTP_HOST", "smtp.gmail.com"),
-        "IMAP_USER": os.getenv("IMAP_USER", ""),
-        "NOTIFY_EMAIL": os.getenv("NOTIFY_EMAIL", ""),
-        "SENDER_NAME": os.getenv("SENDER_NAME", ""),
+        "IMAP_USER": os.getenv("IMAP_USER", st.secrets.get("IMAP_USER", "")),
+        "NOTIFY_EMAIL": os.getenv("NOTIFY_EMAIL", st.secrets.get("NOTIFY_EMAIL", "")),
+        "SENDER_NAME": os.getenv("SENDER_NAME", st.secrets.get("SENDER_NAME", "")),
     }
 
     for key, val in env_list.items():

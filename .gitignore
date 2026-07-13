@@ -22,6 +22,7 @@ logs/
 # Generated data & outputs (only real inbox data should be committed)
 data/*.csv
 data/*.json
+data/*.db
 outputs/*.csv
 outputs/*.png
 outputs/*.txt
@@ -41,10 +42,18 @@ data/kaggle/
 # OS
 .DS_Store
 Thumbs.db
+nul
 
 # IDE
 .vscode/
 .idea/
+
+# Test & coverage artifacts
+.mypy_cache/
+.pytest_cache/
+htmlcov/
+.coverage
+*.egg-info
 
 # Streamlit
 .streamlit/secrets.toml
