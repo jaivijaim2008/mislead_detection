@@ -18,6 +18,25 @@ import subprocess
 import sys
 from datetime import datetime, timedelta
 
+# ── Safe Secrets Access ───────────────────────────────────-
+# st.secrets.get() raises StreamlitSecretNotFoundError when no
+# secrets.toml exists AND no cloud secrets are configured.
+# We wrap it so the app never crashes from missing secrets.
+def _get_secret(key: str, fallback: str = "") -> str:
+    """Safely read from st.secrets with env var and fallback."""
+    # Environment variable takes priority (works everywhere)
+    env_val = os.getenv(key)
+    if env_val:
+        return env_val
+    # Try st.secrets (may raise if no secrets configured)
+    try:
+        val = st.secrets.get(key)
+        if val:
+            return val
+    except Exception:
+        pass
+    return fallback
+
 # ── Import Fallbacks & Safety ──────────────────────────────
 try:
     import plotly.express as px
@@ -65,10 +84,8 @@ st.set_page_config(
 # ══════════════════════════════════════════════════════════
 # Credentials come from Streamlit secrets or env vars.
 # Set AUTH_USER / AUTH_PASS in Streamlit Cloud secrets (Settings > Secrets).
-# NOTE: In Streamlit Cloud, `st.secrets` is the recommended approach.
-#       On local/other deployments, env vars are used as fallback.
-_AUTH_USER = st.secrets.get("AUTH_USER", os.getenv("AUTH_USER", "admin"))
-_AUTH_PASS = st.secrets.get("AUTH_PASS", os.getenv("AUTH_PASS", "admin"))
+_AUTH_USER = _get_secret("AUTH_USER", "admin")
+_AUTH_PASS = _get_secret("AUTH_PASS", "admin")
 
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
@@ -1012,10 +1029,10 @@ if page == "Command Center":
                     # email_reader.py / inbox_monitor.py can connect to Gmail.
                     # Priority: environment variable already set > .bat config fallback.
                     scan_env = os.environ.copy()
-                    scan_env.setdefault("IMAP_USER",  os.getenv("IMAP_USER",  st.secrets.get("IMAP_USER", "")))
-                    scan_env.setdefault("IMAP_PASS",  os.getenv("IMAP_PASS",  st.secrets.get("IMAP_PASS", "")))
-                    scan_env.setdefault("SMTP_USER",  os.getenv("SMTP_USER",  st.secrets.get("SMTP_USER", "")))
-                    scan_env.setdefault("SMTP_PASS",  os.getenv("SMTP_PASS",  st.secrets.get("SMTP_PASS", "")))
+                    scan_env.setdefault("IMAP_USER",  _get_secret("IMAP_USER"))
+                    scan_env.setdefault("IMAP_PASS",  _get_secret("IMAP_PASS"))
+                    scan_env.setdefault("SMTP_USER",  _get_secret("SMTP_USER"))
+                    scan_env.setdefault("SMTP_PASS",  _get_secret("SMTP_PASS"))
                     scan_env.setdefault("SENDER_NAME", os.getenv("SENDER_NAME", "Sales Team"))
                     scan_env["STREAMLIT_SERVER_HEADLESS"] = "true"
 
@@ -1704,11 +1721,11 @@ elif page == "Workflow Settings":
     st.markdown("#### 🔒 Environment Variables")
 
     env_list = {
-        "SMTP_USER": os.getenv("SMTP_USER", st.secrets.get("SMTP_USER", "")),
-        "SMTP_HOST": os.getenv("SMTP_HOST", "smtp.gmail.com"),
-        "IMAP_USER": os.getenv("IMAP_USER", st.secrets.get("IMAP_USER", "")),
-        "NOTIFY_EMAIL": os.getenv("NOTIFY_EMAIL", st.secrets.get("NOTIFY_EMAIL", "")),
-        "SENDER_NAME": os.getenv("SENDER_NAME", st.secrets.get("SENDER_NAME", "")),
+        "SMTP_USER": _get_secret("SMTP_USER"),
+        "SMTP_HOST": "smtp.gmail.com",
+        "IMAP_USER": _get_secret("IMAP_USER"),
+        "NOTIFY_EMAIL": _get_secret("NOTIFY_EMAIL"),
+        "SENDER_NAME": _get_secret("SENDER_NAME"),
     }
 
     for key, val in env_list.items():
