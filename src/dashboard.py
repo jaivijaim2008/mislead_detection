@@ -1,12 +1,11 @@
 """
 dashboard.py — Missed-Lead Detector
-Solar Flare Command Center — Unique warm-ember analytics interface.
+Ops Board — split-flap departure-board command interface.
 
-Complete redesign: solar-warm palette, ember/sun/gold gradients,
-holographic depth, animated heat shimmer, and smooth micro-interactions.
-
-Design: Deep space base with warm solar flare accents, amber glow effects,
-animated gradient borders, and faceted glass elements.
+Design language: a dispatch/ops board. Every metric reads like a status
+board tile, every list reads like a manifest. Restrained, flat, dark
+slate surfaces with a single semantic color system (amber = attention,
+rust = risk, teal = resolved) instead of a different color per widget.
 """
 
 import streamlit as st
@@ -74,7 +73,8 @@ import config
 
 # ── Page Config ────────────────────────────────────────────
 st.set_page_config(
-    page_title="Missed-Lead Command Center",
+    page_title="Missed-Lead Ops Board",
+    page_icon="📋",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -93,587 +93,475 @@ if "authenticated" not in st.session_state:
 if not st.session_state["authenticated"]:
     st.markdown("""
     <style>
-    /* Hide sidebar and header during login */
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
     [data-testid="stSidebar"] { display: none !important; }
     header[data-testid="stHeader"] { display: none !important; }
     .stApp {
-        background: linear-gradient(135deg, #0b0710 0%, #110d1a 50%, #0d0916 100%) !important;
+        background: #14161b !important;
         display: flex; align-items: center; justify-content: center;
     }
     </style>
     """, unsafe_allow_html=True)
 
-    # Centered login card
-    _, col, _ = st.columns([1, 1.2, 1])
+    _, col, _ = st.columns([1, 1.15, 1])
     with col:
         st.markdown("""
         <div style="
-            background: rgba(17,13,26,0.85);
-            border: 1px solid rgba(255,140,50,0.15);
-            border-radius: 20px;
-            padding: 2.8rem 2.5rem 2.2rem;
+            background: #1c1f26;
+            border: 1px solid #2c303a;
+            border-top: 2px solid #e8a33d;
+            border-radius: 10px;
+            padding: 2.4rem 2.4rem 0.5rem;
             margin-top: 8vh;
-            box-shadow: 0 0 60px rgba(255,140,50,0.06);
-            font-family: 'Outfit', sans-serif;
+            font-family: 'Inter', sans-serif;
         ">
-            <div style="text-align:center; margin-bottom: 2rem;">
-                <div style="font-size:2.8rem; margin-bottom:0.5rem;">🔐</div>
-                <h2 style="color:#e8ecf1; margin:0; font-weight:700; font-size:1.6rem;">Missed-Lead Detector</h2>
-                <p style="color:#6b7a90; margin:0.4rem 0 0; font-size:0.9rem;">Sign in to access the Command Center</p>
+            <div style="text-align:center; margin-bottom: 1.6rem;">
+                <div style="font-family:'IBM Plex Mono', monospace; font-size:0.68rem; letter-spacing:0.18em;
+                            text-transform:uppercase; color:#8b8f99; margin-bottom:0.6rem;">
+                    Access Control · Manifest
+                </div>
+                <h2 style="color:#eae7dd; margin:0; font-weight:700; font-size:1.5rem; font-family:'Space Grotesk', sans-serif;">
+                    Missed-Lead Ops Board
+                </h2>
+                <p style="color:#8b8f99; margin:0.45rem 0 0; font-size:0.85rem;">Sign in to open the board</p>
             </div>
+            <div style="border-top: 1px dashed #383c44; margin: 0 -2.4rem 1.6rem;"></div>
         </div>
         """, unsafe_allow_html=True)
 
         with st.form("login_form", clear_on_submit=False):
             username = st.text_input("Username", placeholder="Enter your username")
             password = st.text_input("Password", type="password", placeholder="Enter your password")
-            submitted = st.form_submit_button("Sign In", use_container_width=True, type="primary")
+            submitted = st.form_submit_button("Sign in", use_container_width=True, type="primary")
 
             if submitted:
                 if username.strip() == _AUTH_USER and password == _AUTH_PASS:
                     st.session_state["authenticated"] = True
                     st.rerun()
                 else:
-                    st.error("❌ Invalid username or password. Please try again.")
+                    st.error("Incorrect username or password. Try again.")
     st.stop()  # Block everything below until authenticated
 
 # ══════════════════════════════════════════════════════════
-#  SOLAR FLARE DESIGN SYSTEM — CSS
+#  OPS BOARD DESIGN SYSTEM — CSS
 # ══════════════════════════════════════════════════════════
 DESIGN_CSS = """
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
 
     :root {
-        --flare-bg: #0b0710;
-        --flare-surface: #110d1a;
-        --flare-card: rgba(17, 13, 26, 0.75);
-        --flare-border: rgba(255, 140, 50, 0.08);
-        --flare-border-hover: rgba(255, 140, 50, 0.25);
-        --sun-glow: #ff8c32;
-        --sun-glow-dim: rgba(255, 140, 50, 0.12);
-        --ember: #ff5e3a;
-        --ember-dim: rgba(255, 94, 58, 0.12);
-        --gold: #ffc857;
-        --gold-dim: rgba(255, 200, 87, 0.12);
-        --rose: #ff6b8a;
-        --rose-dim: rgba(255, 107, 138, 0.12);
-        --teal: #2dd4bf;
-        --teal-dim: rgba(45, 212, 191, 0.12);
-        --text-primary: #f0ece4;
-        --text-secondary: #8a7f94;
-        --text-muted: #4a3f54;
-        --radius-sm: 6px;
-        --radius-md: 14px;
-        --radius-lg: 22px;
-        --radius-pill: 999px;
+        --board-bg: #14161b;
+        --board-panel: #1c1f26;
+        --board-panel-alt: #21242c;
+        --board-line: #2c303a;
+        --ink: #eae7dd;
+        --ink-dim: #8b8f99;
+        --ink-faint: #52565f;
+        --flap-amber: #e8a33d;
+        --flap-amber-dim: rgba(232, 163, 61, 0.12);
+        --flap-rust: #c9503f;
+        --flap-rust-dim: rgba(201, 80, 63, 0.12);
+        --flap-teal: #4f9c8f;
+        --flap-teal-dim: rgba(79, 156, 143, 0.12);
+        --radius-sm: 5px;
+        --radius-md: 8px;
+        --radius-lg: 10px;
     }
 
     html, body, [class*="st-"] {
-        font-family: 'Outfit', -apple-system, sans-serif !important;
+        font-family: 'Inter', -apple-system, sans-serif !important;
     }
 
     .stApp {
-        background: var(--flare-bg) !important;
-        background-image:
-            radial-gradient(ellipse at 80% 20%, rgba(255, 140, 50, 0.04) 0%, transparent 60%),
-            radial-gradient(ellipse at 20% 80%, rgba(255, 94, 58, 0.03) 0%, transparent 50%),
-            radial-gradient(ellipse at 50% 50%, rgba(45, 212, 191, 0.015) 0%, transparent 40%) !important;
-        color: var(--text-primary) !important;
+        background: var(--board-bg) !important;
+        background-image: repeating-linear-gradient(
+            0deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px,
+            transparent 1px, transparent 34px
+        ) !important;
+        color: var(--ink) !important;
     }
 
-    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255, 140, 50, 0.15); border-radius: 99px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(255, 140, 50, 0.3); }
+    ::-webkit-scrollbar-thumb { background: var(--board-line); border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--ink-faint); }
 
-    @keyframes flare-floatUp {
-        from { opacity: 0; transform: translateY(25px) scale(0.96); }
-        to   { opacity: 1; transform: translateY(0) scale(1); }
+    @keyframes bd-flap {
+        0%   { opacity: 0; transform: perspective(500px) rotateX(-65deg); }
+        65%  { opacity: 1; }
+        100% { opacity: 1; transform: perspective(500px) rotateX(0deg); }
     }
-    @keyframes flare-slideRight {
-        from { opacity: 0; transform: translateX(-25px); }
+    @keyframes bd-rise {
+        from { opacity: 0; transform: translateY(14px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes bd-slide-in {
+        from { opacity: 0; transform: translateX(16px); }
         to   { opacity: 1; transform: translateX(0); }
     }
-    @keyframes flare-scaleBounce {
-        from { opacity: 0; transform: scale(0.85) rotate(-2deg); }
-        60%  { transform: scale(1.03) rotate(0.5deg); }
-        to   { opacity: 1; transform: scale(1) rotate(0); }
-    }
-    @keyframes flare-pulseGlow {
-        0%, 100% { box-shadow: 0 0 15px rgba(255, 140, 50, 0.03); }
-        50%      { box-shadow: 0 0 35px rgba(255, 140, 50, 0.08); }
-    }
-    @keyframes flare-sunRise {
-        0%   { background-position: 0% 0%; opacity: 0.3; }
-        50%  { background-position: 100% 100%; opacity: 0.7; }
-        100% { background-position: 0% 0%; opacity: 0.3; }
-    }
-    @keyframes flare-heatShimmer {
-        0%   { background-position: 0% 50%; }
-        50%  { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-    }
-    @keyframes flare-warmPulse {
-        0%, 100% { transform: scale(1); opacity: 0.6; }
-        50%      { transform: scale(1.05); opacity: 1; }
-    }
-    @keyframes flare-pulseDot {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50%      { opacity: 0.3; transform: scale(0.6); }
+    @keyframes bd-pulse-dot {
+        0%, 100% { opacity: 1; }
+        50%      { opacity: 0.25; }
     }
 
-    .flare-animate-in {
-        animation: flare-floatUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-    .flare-animate-in-delay-1 { animation-delay: 0.08s; }
-    .flare-animate-in-delay-2 { animation-delay: 0.16s; }
-    .flare-animate-in-delay-3 { animation-delay: 0.24s; }
-    .flare-animate-in-delay-4 { animation-delay: 0.32s; }
-    .flare-animate-in-delay-5 { animation-delay: 0.4s; }
+    .bd-in { animation: bd-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .bd-in-1 { animation-delay: 0.05s; }
+    .bd-in-2 { animation-delay: 0.10s; }
+    .bd-in-3 { animation-delay: 0.15s; }
+    .bd-in-4 { animation-delay: 0.20s; }
+    .bd-in-5 { animation-delay: 0.25s; }
 
     section[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0d0916 0%, #110d1e 50%, #0d0916 100%) !important;
-        border-right: 1px solid var(--flare-border) !important;
+        background: var(--board-panel) !important;
+        border-right: 1px solid var(--board-line) !important;
     }
     section[data-testid="stSidebar"] .stMarkdown p,
     section[data-testid="stSidebar"] .stMarkdown h2,
     section[data-testid="stSidebar"] .stMarkdown h3,
     section[data-testid="stSidebar"] label {
-        color: var(--text-primary) !important;
+        color: var(--ink) !important;
     }
-    section[data-testid="stSidebar"] hr {
-        border-color: var(--flare-border) !important;
-    }
+    section[data-testid="stSidebar"] hr { border-color: var(--board-line) !important; }
 
-    .neb-header {
+    /* ── Header strip ─────────────────────────────────── */
+    .bd-header {
         position: relative;
-        background: linear-gradient(135deg, rgba(17, 13, 26, 0.8), rgba(25, 15, 25, 0.8));
-        backdrop-filter: blur(16px);
-        border: 1px solid var(--flare-border);
+        background: var(--board-panel);
+        border: 1px solid var(--board-line);
+        border-top: 2px solid var(--flap-amber);
         border-radius: var(--radius-lg);
-        padding: 2.5rem 2.5rem 2rem;
-        margin-bottom: 2rem;
-        overflow: hidden;
-        animation: flare-pulseGlow 5s ease-in-out infinite;
+        padding: 1.5rem 1.9rem;
+        margin-bottom: 1.6rem;
     }
-    .neb-header::before {
-        content: '';
-        position: absolute;
-        top: -150px; right: -100px;
-        width: 500px; height: 500px;
-        background: radial-gradient(circle, rgba(255, 140, 50, 0.06) 0%, rgba(255, 94, 58, 0.03) 30%, transparent 60%);
-        animation: flare-sunRise 15s ease-in-out infinite;
-        background-size: 200% 200%;
-        pointer-events: none;
+    .bd-header .eyebrow {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 0.68rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--ink-faint);
+        margin: 0 0 0.35rem;
     }
-    .neb-header::after {
-        content: '';
-        position: absolute;
-        bottom: -80px; left: -60px;
-        width: 200px; height: 200px;
-        background: radial-gradient(circle, rgba(45, 212, 191, 0.03) 0%, transparent 70%);
-        pointer-events: none;
-    }
-    .neb-header h1 {
-        font-weight: 800;
-        font-size: 2rem;
-        letter-spacing: -0.04em;
-        background: linear-gradient(135deg, var(--text-primary) 0%, var(--sun-glow) 40%, var(--ember) 70%, var(--gold) 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin: 0;
-        position: relative;
-        z-index: 1;
-    }
-    .neb-header p {
-        color: var(--text-secondary);
-        margin-top: 0.4rem;
-        font-size: 0.95rem;
-        font-weight: 300;
-        margin-bottom: 0;
-        position: relative;
-        z-index: 1;
-    }
-
-    .neb-card {
-        position: relative;
-        background: var(--flare-card);
-        backdrop-filter: blur(14px);
-        border: 1px solid var(--flare-border);
-        border-radius: var(--radius-md);
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-        animation: flare-floatUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-    .neb-card:hover {
-        border-color: var(--flare-border-hover);
-        transform: translateY(-3px);
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 40px rgba(255, 140, 50, 0.04);
-    }
-
-    .neb-card-glow {
-        position: relative;
-        background: var(--flare-card);
-        backdrop-filter: blur(14px);
-        border-radius: var(--radius-md);
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        animation: flare-floatUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-    .neb-card-glow::before {
-        content: '';
-        position: absolute;
-        inset: -1px;
-        border-radius: var(--radius-md);
-        background: linear-gradient(135deg, var(--sun-glow), var(--rose), var(--ember), var(--gold), var(--sun-glow));
-        background-size: 400% 400%;
-        animation: flare-heatShimmer 8s ease infinite;
-        z-index: -1;
-        opacity: 0.5;
-    }
-    .neb-card-glow::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: calc(var(--radius-md) - 1px);
-        background: var(--flare-card);
-        z-index: -1;
-    }
-
-    .neb-kpi-row {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 2rem;
-    }
-    .neb-kpi {
-        flex: 1;
-        background: var(--flare-card);
-        backdrop-filter: blur(14px);
-        border: 1px solid var(--flare-border);
-        border-radius: var(--radius-md);
-        padding: 1.25rem 1.5rem;
-        position: relative;
-        overflow: hidden;
-        transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .neb-kpi:hover {
-        transform: translateY(-5px) scale(1.02);
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    }
-    .neb-kpi::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 3px;
-        border-radius: var(--radius-md) var(--radius-md) 0 0;
-    }
-    .neb-kpi::after {
-        content: '';
-        position: absolute;
-        top: -30px; right: -30px;
-        width: 100px; height: 100px;
-        border-radius: 50%;
-        opacity: 0.05;
-        transition: all 0.6s ease;
-    }
-    .neb-kpi:hover::after {
-        transform: scale(2);
-        opacity: 0.12;
-    }
-
-    .neb-kpi.sun::before    { background: linear-gradient(90deg, var(--sun-glow), #e07c30); }
-    .neb-kpi.sun::after     { background: var(--sun-glow); }
-    .neb-kpi.ember::before  { background: linear-gradient(90deg, var(--ember), #d6442a); }
-    .neb-kpi.ember::after   { background: var(--ember); }
-    .neb-kpi.teal::before   { background: linear-gradient(90deg, var(--teal), #1fa893); }
-    .neb-kpi.teal::after    { background: var(--teal); }
-    .neb-kpi.gold::before   { background: linear-gradient(90deg, var(--gold), #d4a032); }
-    .neb-kpi.gold::after    { background: var(--gold); }
-    .neb-kpi.rose::before   { background: linear-gradient(90deg, var(--rose), #d94a6a); }
-    .neb-kpi.rose::after    { background: var(--rose); }
-
-    .neb-kpi-icon {
-        font-size: 1.4rem;
-        margin-bottom: 0.4rem;
-        display: inline-block;
-        animation: flare-warmPulse 4s ease-in-out infinite;
-    }
-    .neb-kpi-value {
-        font-size: 2rem;
+    .bd-header h1 {
+        font-family: 'Space Grotesk', sans-serif;
         font-weight: 700;
-        line-height: 1;
-        letter-spacing: -0.03em;
-        font-family: 'JetBrains Mono', monospace;
+        font-size: 1.65rem;
+        letter-spacing: -0.01em;
+        color: var(--ink);
+        margin: 0;
     }
-    .neb-kpi-label {
-        font-size: 0.7rem;
-        color: var(--text-secondary);
-        margin-top: 0.5rem;
+    .bd-header p {
+        color: var(--ink-dim);
+        margin-top: 0.4rem;
+        font-size: 0.9rem;
+        margin-bottom: 0;
+    }
+
+    /* ── Generic panel/card ───────────────────────────── */
+    .bd-card {
+        position: relative;
+        background: var(--board-panel);
+        border: 1px solid var(--board-line);
+        border-radius: var(--radius-md);
+        padding: 1.4rem 1.5rem;
+        margin-bottom: 1.4rem;
+        transition: border-color 0.25s ease, transform 0.25s ease;
+    }
+    .bd-card:hover { border-color: var(--ink-faint); }
+    .bd-card h4, .bd-card-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 600;
+        font-size: 1.02rem;
+        color: var(--ink);
+        margin: 0 0 1rem;
+    }
+
+    /* ── Split-flap KPI tiles ──────────────────────────── */
+    .bd-tile-row { display: flex; gap: 0.9rem; margin-bottom: 1.8rem; flex-wrap: wrap; }
+    .bd-tile {
+        position: relative;
+        flex: 1 1 0;
+        min-width: 140px;
+        background: var(--board-panel);
+        border: 1px solid var(--board-line);
+        border-left: 3px solid var(--ink-faint);
+        border-radius: var(--radius-md);
+        padding: 1.05rem 1.2rem 0.95rem;
+        overflow: hidden;
+        transform-origin: top center;
+        animation: bd-flap 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+        transition: transform 0.25s ease, border-color 0.25s ease;
+    }
+    .bd-tile:hover { transform: translateY(-2px); }
+    .bd-tile::after {
+        content: '';
+        position: absolute;
+        left: 0; right: 0; top: 50%;
+        height: 1px;
+        background: var(--board-bg);
+        opacity: 0.6;
+    }
+    .bd-tile-value {
+        font-family: 'IBM Plex Mono', monospace;
+        font-variant-numeric: tabular-nums;
+        font-size: 2.05rem;
+        font-weight: 600;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+    }
+    .bd-tile-label {
+        font-size: 0.68rem;
+        color: var(--ink-dim);
+        margin-top: 0.55rem;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.1em;
+        letter-spacing: 0.09em;
+        font-family: 'IBM Plex Mono', monospace;
     }
-    .neb-kpi.sun .neb-kpi-value   { color: var(--sun-glow); }
-    .neb-kpi.ember .neb-kpi-value { color: var(--ember); }
-    .neb-kpi.teal .neb-kpi-value  { color: var(--teal); }
-    .neb-kpi.gold .neb-kpi-value  { color: var(--gold); }
-    .neb-kpi.rose .neb-kpi-value  { color: var(--rose); }
+    .bd-tile-label.flag { color: var(--flap-amber); }
+    .bd-tile.rust  { border-left-color: var(--flap-rust); }
+    .bd-tile.rust  .bd-tile-value { color: var(--flap-rust); }
+    .bd-tile.teal  { border-left-color: var(--flap-teal); }
+    .bd-tile.teal  .bd-tile-value { color: var(--flap-teal); }
+    .bd-tile.amber { border-left-color: var(--flap-amber); }
+    .bd-tile.amber .bd-tile-value { color: var(--flap-amber); }
 
-    .neb-badge {
+    /* ── Status tags / badges ─────────────────────────── */
+    .bd-tag {
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
-        padding: 0.3rem 0.85rem;
-        border-radius: var(--radius-pill);
-        font-size: 0.68rem;
-        font-weight: 700;
+        padding: 0.32rem 0.8rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.66rem;
+        font-weight: 600;
+        font-family: 'IBM Plex Mono', monospace;
         text-transform: uppercase;
         letter-spacing: 0.08em;
     }
-    .neb-badge-live {
-        background: var(--teal-dim);
-        color: var(--teal);
-        border: 1px solid rgba(45, 212, 191, 0.2);
+    .bd-tag.live {
+        background: var(--flap-teal-dim);
+        color: var(--flap-teal);
+        border: 1px solid rgba(79, 156, 143, 0.3);
     }
-    .neb-badge-live::before {
-        content: '';
-        width: 6px; height: 6px;
-        background: var(--teal);
-        border-radius: 50%;
-        animation: flare-pulseDot 1.8s infinite;
+    .bd-tag.live::before {
+        content: ''; width: 6px; height: 6px; border-radius: 50%;
+        background: var(--flap-teal); animation: bd-pulse-dot 1.8s infinite;
     }
-    .neb-badge-demo {
-        background: var(--gold-dim);
-        color: var(--gold);
-        border: 1px solid rgba(255, 200, 87, 0.2);
+    .bd-tag.offline {
+        background: rgba(139, 143, 153, 0.08);
+        color: var(--ink-dim);
+        border: 1px solid var(--board-line);
+    }
+    .bd-tag.offline::before {
+        content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--ink-faint);
     }
 
+    /* ── Buttons ───────────────────────────────────────── */
     .stButton > button {
-        background: linear-gradient(135deg, rgba(17, 13, 26, 0.9), rgba(25, 18, 30, 0.9)) !important;
-        color: var(--text-primary) !important;
-        border: 1px solid var(--flare-border) !important;
-        border-radius: var(--radius-pill) !important;
-        padding: 0.5rem 1.6rem !important;
-        font-weight: 600 !important;
-        font-family: 'Outfit', sans-serif !important;
-        letter-spacing: 0.02em !important;
-        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
-        position: relative;
-        overflow: hidden;
-    }
-    .stButton > button::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(135deg, var(--sun-glow), var(--ember));
-        opacity: 0;
-        transition: opacity 0.4s ease;
-        border-radius: inherit;
+        background: var(--board-panel-alt) !important;
+        color: var(--ink) !important;
+        border: 1px solid var(--board-line) !important;
+        border-radius: var(--radius-sm) !important;
+        padding: 0.5rem 1.4rem !important;
+        font-weight: 500 !important;
+        font-family: 'Inter', sans-serif !important;
+        letter-spacing: 0.01em !important;
+        transition: border-color 0.2s ease, transform 0.15s ease !important;
     }
     .stButton > button:hover {
-        border-color: var(--sun-glow) !important;
-        color: #ffffff !important;
-        box-shadow: 0 4px 25px rgba(255, 140, 50, 0.15), 0 0 50px rgba(255, 140, 50, 0.04) !important;
-        transform: translateY(-2px) !important;
-    }
-    .stButton > button:hover::before {
-        opacity: 0.12;
+        border-color: var(--flap-amber) !important;
+        color: var(--ink) !important;
+        transform: translateY(-1px) !important;
     }
     .stButton > button[data-testid="stBaseButton-primary"] {
-        background: linear-gradient(135deg, var(--sun-glow), var(--ember)) !important;
-        color: #ffffff !important;
-        border: none !important;
-        box-shadow: 0 4px 25px rgba(255, 140, 50, 0.25) !important;
+        background: var(--flap-amber) !important;
+        color: #1a1408 !important;
+        border: 1px solid var(--flap-amber) !important;
+        font-weight: 600 !important;
     }
     .stButton > button[data-testid="stBaseButton-primary"]:hover {
-        background: linear-gradient(135deg, #ffa050, var(--sun-glow)) !important;
-        box-shadow: 0 6px 35px rgba(255, 140, 50, 0.35) !important;
+        background: #f2b055 !important;
+        border-color: #f2b055 !important;
     }
 
-    .neb-btn-danger > button {
-        background: linear-gradient(135deg, rgba(255, 94, 58, 0.1), rgba(214, 68, 42, 0.1)) !important;
-        border-color: rgba(255, 94, 58, 0.25) !important;
-        color: var(--ember) !important;
-    }
-    .neb-btn-danger > button:hover {
-        border-color: var(--ember) !important;
-        box-shadow: 0 4px 20px rgba(255, 94, 58, 0.15) !important;
-    }
-
+    /* ── Inputs ────────────────────────────────────────── */
     div[data-baseweb="select"] > div,
     div[data-baseweb="input"] input,
     textarea {
-        background: rgba(17, 13, 26, 0.6) !important;
-        border: 1px solid var(--flare-border) !important;
-        color: var(--text-primary) !important;
+        background: var(--board-panel-alt) !important;
+        border: 1px solid var(--board-line) !important;
+        color: var(--ink) !important;
         border-radius: var(--radius-sm) !important;
-        font-family: 'Outfit', sans-serif !important;
-        transition: border-color 0.3s ease, box-shadow 0.3s ease !important;
+        font-family: 'Inter', sans-serif !important;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
     }
     div[data-baseweb="select"] > div:hover,
     div[data-baseweb="input"] input:hover,
-    textarea:hover {
-        border-color: var(--flare-border-hover) !important;
-    }
+    textarea:hover { border-color: var(--ink-faint) !important; }
     div[data-baseweb="select"] > div:focus-within,
     div[data-baseweb="input"] input:focus,
     textarea:focus {
-        border-color: var(--sun-glow) !important;
-        box-shadow: 0 0 0 3px rgba(255, 140, 50, 0.06) !important;
+        border-color: var(--flap-amber) !important;
+        box-shadow: 0 0 0 3px var(--flap-amber-dim) !important;
     }
 
-    .neb-notif {
-        background: rgba(17, 13, 26, 0.5);
-        border: 1px solid var(--flare-border);
-        border-left: 3px solid var(--sun-glow);
+    /* ── Notification / ledger rows ───────────────────── */
+    .bd-notif {
+        background: var(--board-panel-alt);
+        border: 1px solid var(--board-line);
+        border-left: 3px solid var(--ink-faint);
         border-radius: var(--radius-sm);
-        padding: 0.85rem 1.1rem;
-        margin-bottom: 0.6rem;
-        transition: all 0.3s ease;
-        animation: flare-slideRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.55rem;
+        animation: bd-slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
-    .neb-notif:hover {
-        background: rgba(25, 18, 35, 0.5);
-        border-left-color: var(--sun-glow);
-        transform: translateX(5px);
+    .bd-notif.new_lead   { border-left-color: var(--flap-amber); }
+    .bd-notif.auto_reply { border-left-color: var(--flap-teal); }
+    .bd-notif.overdue    { border-left-color: var(--flap-rust); }
+    .bd-notif.info       { border-left-color: var(--ink-faint); }
+    .bd-notif-tag {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-right: 0.5rem;
     }
-    .neb-notif.new_lead   { border-left-color: var(--sun-glow); }
-    .neb-notif.auto_reply { border-left-color: var(--teal); }
-    .neb-notif.overdue    { border-left-color: var(--ember); }
-    .neb-notif.info       { border-left-color: var(--rose); }
+    .bd-notif.new_lead   .bd-notif-tag { color: var(--flap-amber); }
+    .bd-notif.auto_reply .bd-notif-tag { color: var(--flap-teal); }
+    .bd-notif.overdue    .bd-notif-tag { color: var(--flap-rust); }
+    .bd-notif.info       .bd-notif-tag { color: var(--ink-faint); }
 
-    .neb-terminal {
-        background: #07040d !important;
-        border: 1px solid var(--flare-border) !important;
+    /* ── Terminal / log output ────────────────────────── */
+    .bd-terminal {
+        background: #0e1013 !important;
+        border: 1px solid var(--board-line) !important;
         border-radius: var(--radius-md) !important;
-        padding: 1.2rem !important;
-        font-family: 'JetBrains Mono', monospace !important;
-        font-size: 0.78rem !important;
-        color: var(--gold) !important;
-        box-shadow: inset 0 2px 15px rgba(0, 0, 0, 0.5) !important;
+        padding: 1.1rem !important;
+        font-family: 'IBM Plex Mono', monospace !important;
+        font-size: 0.76rem !important;
+        color: var(--flap-amber) !important;
         line-height: 1.6 !important;
         max-height: 400px;
         overflow-y: auto;
     }
 
-    .neb-email {
-        background: var(--flare-card);
-        border: 1px solid var(--flare-border);
+    /* ── Reply preview card ───────────────────────────── */
+    .bd-email {
+        background: var(--board-panel-alt);
+        border: 1px solid var(--board-line);
         border-radius: var(--radius-md);
-        padding: 1.25rem;
-        margin-top: 1rem;
-        animation: flare-scaleBounce 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+        padding: 1.2rem;
+        margin-top: 0.8rem;
     }
-    .neb-email-header {
-        border-bottom: 1px solid var(--flare-border);
-        padding-bottom: 0.75rem;
-        margin-bottom: 0.75rem;
-        font-size: 0.8rem;
-        color: var(--text-secondary);
+    .bd-email-header {
+        border-bottom: 1px dashed var(--board-line);
+        padding-bottom: 0.7rem;
+        margin-bottom: 0.7rem;
+        font-size: 0.78rem;
+        color: var(--ink-dim);
+        font-family: 'IBM Plex Mono', monospace;
     }
-    .neb-email-header span { color: var(--text-primary); font-weight: 500; }
-    .neb-email-body {
+    .bd-email-header span { color: var(--ink); font-weight: 500; }
+    .bd-email-body {
         font-size: 0.88rem;
-        color: var(--text-primary);
+        color: var(--ink);
         line-height: 1.6;
         white-space: pre-wrap;
+        font-family: 'Inter', sans-serif;
     }
 
+    /* ── Tabs ──────────────────────────────────────────── */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 0.4rem;
-        background: var(--flare-card);
+        gap: 0.3rem;
+        background: var(--board-panel-alt);
         border-radius: var(--radius-sm);
-        padding: 0.3rem;
-        border: 1px solid var(--flare-border);
+        padding: 0.25rem;
+        border: 1px solid var(--board-line);
     }
     .stTabs [data-baseweb="tab"] {
         background: transparent;
-        border-radius: 8px;
-        color: var(--text-secondary) !important;
+        border-radius: 4px;
+        color: var(--ink-dim) !important;
         font-weight: 500;
-        font-family: 'Outfit', sans-serif;
         padding: 0.35rem 1.1rem;
         border: none !important;
-        transition: all 0.3s ease;
-    }
-    .stTabs [data-baseweb="tab"]:hover {
-        color: var(--text-primary) !important;
     }
     .stTabs [aria-selected="true"] {
-        background: var(--sun-glow-dim) !important;
-        color: var(--sun-glow) !important;
-        border: 1px solid rgba(255, 140, 50, 0.15) !important;
+        background: var(--flap-amber-dim) !important;
+        color: var(--flap-amber) !important;
+        border: 1px solid rgba(232, 163, 61, 0.25) !important;
     }
 
     [data-testid="stDialog"] {
-        background: var(--flare-card) !important;
-        border: 1px solid var(--flare-border) !important;
+        background: var(--board-panel) !important;
+        border: 1px solid var(--board-line) !important;
         border-radius: var(--radius-lg) !important;
-        backdrop-filter: blur(16px) !important;
     }
 
-    .neb-sidebar-box {
-        background: rgba(17, 13, 26, 0.5);
-        border: 1px solid var(--flare-border);
+    .bd-sidebar-box {
+        background: var(--board-panel-alt);
+        border: 1px solid var(--board-line);
         border-radius: var(--radius-sm);
-        padding: 0.8rem 1rem;
-        font-size: 0.8rem;
-        line-height: 1.8;
+        padding: 0.75rem 0.95rem;
+        font-size: 0.79rem;
+        font-family: 'IBM Plex Mono', monospace;
+        line-height: 1.85;
+        color: var(--ink-dim);
+    }
+    .bd-sidebar-eyebrow {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 0.68rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-faint);
+        margin: 0 0 0.6rem;
     }
 
     #MainMenu, footer { visibility: hidden; }
 
-    .neb-footer {
+    .bd-footer {
         text-align: center;
-        padding: 2.5rem 0 1.5rem 0;
-        color: var(--text-muted);
-        font-size: 0.72rem;
-        border-top: 1px solid var(--flare-border);
-        margin-top: 4rem;
-        letter-spacing: 0.06em;
+        padding: 2.2rem 0 1.4rem 0;
+        color: var(--ink-faint);
+        font-size: 0.7rem;
+        font-family: 'IBM Plex Mono', monospace;
+        border-top: 1px solid var(--board-line);
+        margin-top: 3rem;
+        letter-spacing: 0.05em;
     }
 
     [data-testid="stMetric"] {
-        background: var(--flare-card);
-        border: 1px solid var(--flare-border);
+        background: var(--board-panel-alt);
+        border: 1px solid var(--board-line);
         border-radius: var(--radius-sm);
-        padding: 1rem;
-        transition: all 0.3s ease;
-    }
-    [data-testid="stMetric"]:hover {
-        border-color: var(--flare-border-hover);
-        transform: translateY(-2px);
+        padding: 0.9rem 1rem;
     }
     [data-testid="stMetricValue"] {
-        color: var(--text-primary) !important;
-        font-family: 'JetBrains Mono', monospace !important;
+        color: var(--ink) !important;
+        font-family: 'IBM Plex Mono', monospace !important;
     }
-    [data-testid="stMetricLabel"] {
-        color: var(--text-secondary) !important;
+    [data-testid="stMetricLabel"] { color: var(--ink-dim) !important; }
+
+    [data-testid="stDataFrame"] {
+        border: 1px solid var(--board-line);
+        border-radius: var(--radius-md);
+        overflow: hidden;
     }
 
     @media (max-width: 768px) {
-        .neb-header {
-            padding: 1.5rem 1.25rem 1.25rem;
-            border-radius: var(--radius-md);
-        }
-        .neb-header h1 { font-size: 1.5rem; }
-        .neb-header p { font-size: 0.85rem; }
-        .neb-kpi-row { flex-wrap: wrap; }
-        .neb-kpi {
-            flex: 1 1 calc(50% - 0.5rem);
-            min-width: calc(50% - 0.5rem);
-            padding: 1rem;
-        }
-        .neb-kpi-value { font-size: 1.4rem; }
-        .neb-card { padding: 1.25rem; border-radius: var(--radius-sm); }
-        .neb-footer { padding: 1.5rem 1rem 1rem; }
+        .bd-header { padding: 1.2rem 1.1rem; }
+        .bd-header h1 { font-size: 1.3rem; }
+        .bd-header p { font-size: 0.82rem; }
+        .bd-tile-row { flex-wrap: wrap; }
+        .bd-tile { flex: 1 1 calc(50% - 0.45rem); min-width: calc(50% - 0.45rem); padding: 0.9rem 1rem; }
+        .bd-tile-value { font-size: 1.5rem; }
+        .bd-card { padding: 1.1rem; }
     }
     @media (max-width: 480px) {
-        .neb-kpi { flex: 1 1 100%; min-width: 100%; }
-        .neb-header h1 { font-size: 1.3rem; }
+        .bd-tile { flex: 1 1 100%; min-width: 100%; }
+        .bd-header h1 { font-size: 1.2rem; }
     }
 </style>
 """
@@ -728,13 +616,15 @@ def is_live_mode() -> bool:
 @st.dialog("Lead Details", width="large")
 def show_lead_dialog(lead_data, has_gmail_headers):
     """Modal dialog showing full lead details and smart reply preview."""
+    status_tag = "MISSED" if lead_data.get('predicted_missed') == 1 else "RESPONDED"
     st.markdown(f"""
-    <div style="margin-bottom: 1.5rem;">
-        <h2 style="margin:0; color: var(--text-primary); font-weight: 700;">
-            {'🔴' if lead_data.get('predicted_missed') == 1 else '🟢'} Lead {lead_data.get('lead_id', 'N/A')}
+    <div style="margin-bottom: 1.4rem;">
+        <div class="bd-tag {'offline' if lead_data.get('predicted_missed') == 1 else 'live'}" style="margin-bottom:0.6rem;">{status_tag}</div>
+        <h2 style="margin:0; color: var(--ink); font-weight: 700; font-family:'Space Grotesk',sans-serif;">
+            Lead {lead_data.get('lead_id', 'N/A')}
         </h2>
-        <p style="color: var(--text-secondary); margin-top: 0.25rem; font-size: 0.9rem;">
-            Full lead inspection and smart reply preview
+        <p style="color: var(--ink-dim); margin-top: 0.25rem; font-size: 0.88rem;">
+            Full lead record and smart reply preview
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -742,7 +632,7 @@ def show_lead_dialog(lead_data, has_gmail_headers):
     c1, c2 = st.columns([1, 1])
 
     with c1:
-        st.markdown("#### 📋 Lead Information")
+        st.markdown("#### Lead information")
         info_items = [
             ("Lead ID", f"`{lead_data.get('lead_id', 'N/A')}`"),
         ]
@@ -755,19 +645,19 @@ def show_lead_dialog(lead_data, has_gmail_headers):
             ])
         info_items.extend([
             ("Channel", f"{lead_data.get('channel', 'N/A')}"),
-            ("Response Gap", f"**{lead_data.get('response_gap_hrs', 0):.1f}** hours"),
-            ("Risk Score", f"**{lead_data.get('missed_probability', 0):.1%}**"),
-            ("Status", f"{'🔴 MISSED LEAD' if lead_data.get('predicted_missed') == 1 else '🟢 Responded'}"),
+            ("Response gap", f"**{lead_data.get('response_gap_hrs', 0):.1f}** hours"),
+            ("Risk score", f"**{lead_data.get('missed_probability', 0):.1%}**"),
+            ("Status", status_tag),
         ])
         for label, value in info_items:
             st.markdown(f"**{label}:** {value}")
 
         st.markdown("---")
-        st.markdown("#### 💬 Original Message")
+        st.markdown("#### Original message")
         st.info(lead_data.get('message_text', 'No message content available.'))
 
     with c2:
-        st.markdown("#### 🤖 Smart Auto-Reply Preview")
+        st.markdown("#### Smart auto-reply preview")
         try:
             from smart_reply_engine import generate_reply
             reply_payload = generate_reply(
@@ -778,19 +668,19 @@ def show_lead_dialog(lead_data, has_gmail_headers):
                 channel=lead_data.get("channel", "Email"),
             )
             st.markdown(f"""
-            <span class="neb-badge" style="background: var(--sun-glow-dim); color: var(--sun-glow); border: 1px solid rgba(255,140,50,0.2); margin-bottom: 1rem;">
+            <span class="bd-tag amber-tag" style="background: var(--flap-amber-dim); color: var(--flap-amber); border: 1px solid rgba(232,163,61,0.25); margin-bottom: 0.8rem;">
                 Intent: {reply_payload['detected_intent'].upper()}
             </span>
             """, unsafe_allow_html=True)
 
             st.markdown(f"""
-            <div class="neb-email">
-                <div class="neb-email-header">
+            <div class="bd-email">
+                <div class="bd-email-header">
                     <div>From: <span>Sales Team &lt;noreply@yourcompany.com&gt;</span></div>
                     <div>To: <span>{lead_data.get('_customer_name', 'Valued Customer')} &lt;{lead_data.get('_customer_email', 'customer@example.com')}&gt;</span></div>
                     <div>Subject: <span>{reply_payload["reply_subject"]}</span></div>
                 </div>
-                <div class="neb-email-body">{reply_payload["reply_body"]}</div>
+                <div class="bd-email-body">{reply_payload["reply_body"]}</div>
             </div>
             """, unsafe_allow_html=True)
         except Exception as e:
@@ -799,22 +689,25 @@ def show_lead_dialog(lead_data, has_gmail_headers):
 
 # ── Header Section ─────────────────────────────────────────
 live_connected = is_live_mode()
-status_label = "Gmail Connected — Live" if live_connected else "Gmail Not Connected"
-status_class = "neb-badge-live" if live_connected else "neb-badge-demo"
+status_label = "Live" if live_connected else "Not connected"
+status_class = "live" if live_connected else "offline"
 
 st.markdown(f"""
-<div class="neb-header flare-animate-in">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-        <h1>Missed-Lead Command Center</h1>
-        <span class="neb-badge {status_class}">{status_label}</span>
+<div class="bd-header bd-in">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <p class="eyebrow">Ops Board · Inbox Monitoring</p>
+            <h1>Missed-Lead Ops Board</h1>
+        </div>
+        <span class="bd-tag {status_class}">{status_label}</span>
     </div>
-    <p>AI-Powered Email Monitoring &bull; Smart Auto-Replies &bull; Sales Pipeline Retention</p>
+    <p>Tracks inbound leads, flags the ones at risk of going unanswered, and fires smart auto-replies.</p>
 </div>
 """, unsafe_allow_html=True)
 
 # ── Sidebar Configurations & Navigation ───────────────────
 with st.sidebar:
-    st.markdown("## 🧭 Navigation")
+    st.markdown('<p class="bd-sidebar-eyebrow">Navigation</p>', unsafe_allow_html=True)
     page = st.radio(
         "Go to:",
         ["Command Center", "Lead Explorer", "Auto-Replies Tracker",
@@ -823,18 +716,17 @@ with st.sidebar:
     )
 
     st.markdown("---")
-    st.markdown("### System Health")
+    st.markdown('<p class="bd-sidebar-eyebrow">System status</p>', unsafe_allow_html=True)
 
     leads_df = load_scored_leads()
     notifs = load_json_log(NOTIF_LOG)
     unread_notifs = [n for n in notifs if not n.get("read", False)] if isinstance(notifs, list) else []
 
-    inbox_icon = "🟢" if live_connected else "🔴"
     st.markdown(f"""
-    <div class="neb-sidebar-box">
-        <div><b>Gmail</b>: {inbox_icon} {'Active' if live_connected else 'Off'}</div>
-        <div><b>Scored</b>: {len(leads_df)} leads</div>
-        <div><b>Alerts</b>: <span style="color: {'var(--ember)' if len(unread_notifs) > 0 else 'var(--text-secondary)'}; font-weight: bold;">{len(unread_notifs)}</span></div>
+    <div class="bd-sidebar-box">
+        <div>Gmail &nbsp;&nbsp;{'CONNECTED' if live_connected else 'OFFLINE'}</div>
+        <div>Scored &nbsp;&nbsp;{len(leads_df)} leads</div>
+        <div>Alerts &nbsp;&nbsp;<span style="color: {'var(--flap-rust)' if len(unread_notifs) > 0 else 'var(--ink-dim)'}; font-weight: bold;">{len(unread_notifs)}</span></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -862,22 +754,22 @@ if page == "Command Center":
     # ── Empty state ──────────────────────────────────────
     if total_leads == 0:
         st.markdown(f"""
-        <div class="neb-card-glow" style="text-align:center; padding: 3rem 2rem;">
-            <div style="font-size: 3.5rem; margin-bottom: 1rem; animation: flare-warmPulse 3s ease-in-out infinite;">📬</div>
-            <h2 style="color: var(--text-primary); margin-bottom: 0.5rem; font-weight: 700;">No Inbox Data Yet</h2>
-            <p style="color: var(--text-secondary); font-size: 1rem; max-width: 520px; margin: 0 auto;">
-                Connect your Gmail account to start scanning real customer emails.
+        <div class="bd-card" style="text-align:center; padding: 2.6rem 2rem;">
+            <p class="bd-sidebar-eyebrow" style="text-align:center;">No inbox data yet</p>
+            <h2 style="color: var(--ink); margin: 0.3rem 0 0.6rem; font-weight: 700; font-family:'Space Grotesk',sans-serif;">Connect Gmail to start scanning</h2>
+            <p style="color: var(--ink-dim); font-size: 0.92rem; max-width: 520px; margin: 0 auto;">
+                Once connected, the board fills in with real customer emails and risk scores.
             </p>
-            <div style="margin-top: 1.5rem; padding: 1.25rem; background: rgba(17,13,26,0.5); border-radius: var(--radius-md); border: 1px solid var(--flare-border); max-width: 550px; margin-left: auto; margin-right: auto; text-align: left;">
-                <p style="color: var(--gold); font-weight: 600; margin-bottom: 0.75rem;">⚡ Setup Steps:</p>
-                <p style="color: var(--text-secondary); font-size: 0.85rem; line-height: 2;">
+            <div style="margin-top: 1.4rem; padding: 1.2rem; background: var(--board-panel-alt); border-radius: var(--radius-md); border: 1px solid var(--board-line); max-width: 550px; margin-left: auto; margin-right: auto; text-align: left;">
+                <p style="color: var(--flap-amber); font-weight: 600; margin-bottom: 0.65rem; font-family:'IBM Plex Mono',monospace; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.06em;">Setup steps</p>
+                <p style="color: var(--ink-dim); font-size: 0.85rem; line-height: 2;">
                     1. Enable 2FA on your Gmail and generate an App Password<br>
                     2. Add these to Streamlit Cloud secrets:<br>
-                    &nbsp;&nbsp;&nbsp;• <code style="color:var(--sun-glow);">IMAP_USER</code> = your Gmail<br>
-                    &nbsp;&nbsp;&nbsp;• <code style="color:var(--sun-glow);">IMAP_PASS</code> = App Password<br>
-                    &nbsp;&nbsp;&nbsp;• <code style="color:var(--sun-glow);">SMTP_USER</code> = your Gmail<br>
-                    &nbsp;&nbsp;&nbsp;• <code style="color:var(--sun-glow);">SMTP_PASS</code> = App Password<br>
-                    3. Click "Trigger Scan Now" to fetch emails
+                    &nbsp;&nbsp;&nbsp;• <code style="color:var(--flap-amber);">IMAP_USER</code> = your Gmail<br>
+                    &nbsp;&nbsp;&nbsp;• <code style="color:var(--flap-amber);">IMAP_PASS</code> = App Password<br>
+                    &nbsp;&nbsp;&nbsp;• <code style="color:var(--flap-amber);">SMTP_USER</code> = your Gmail<br>
+                    &nbsp;&nbsp;&nbsp;• <code style="color:var(--flap-amber);">SMTP_PASS</code> = App Password<br>
+                    3. Select "Run inbox scan" below to fetch emails
                 </p>
             </div>
         </div>
@@ -885,31 +777,26 @@ if page == "Command Center":
 
     # ── KPI Row ──────────────────────────────────────────
     st.markdown(f"""
-    <div class="neb-kpi-row">
-        <div class="neb-kpi sun flare-animate-in flare-animate-in-delay-1">
-            <div class="neb-kpi-icon">📊</div>
-            <div class="neb-kpi-value">{total_leads:,}</div>
-            <div class="neb-kpi-label">Scanned Leads</div>
+    <div class="bd-tile-row">
+        <div class="bd-tile bd-in-1">
+            <div class="bd-tile-value">{total_leads:,}</div>
+            <div class="bd-tile-label">Scanned leads</div>
         </div>
-        <div class="neb-kpi ember flare-animate-in flare-animate-in-delay-2">
-            <div class="neb-kpi-icon">🚨</div>
-            <div class="neb-kpi-value">{missed_leads}</div>
-            <div class="neb-kpi-label">Missed Leads</div>
+        <div class="bd-tile rust bd-in-2">
+            <div class="bd-tile-value">{missed_leads}</div>
+            <div class="bd-tile-label">Missed leads</div>
         </div>
-        <div class="neb-kpi teal flare-animate-in flare-animate-in-delay-3">
-            <div class="neb-kpi-icon">🤖</div>
-            <div class="neb-kpi-value">{replied_count}</div>
-            <div class="neb-kpi-label">Auto-Replied</div>
+        <div class="bd-tile teal bd-in-3">
+            <div class="bd-tile-value">{replied_count}</div>
+            <div class="bd-tile-label">Auto-replied</div>
         </div>
-        <div class="neb-kpi gold flare-animate-in flare-animate-in-delay-4">
-            <div class="neb-kpi-icon">⏳</div>
-            <div class="neb-kpi-value">{overdue_count}</div>
-            <div class="neb-kpi-label">Awaiting Action</div>
+        <div class="bd-tile amber bd-in-4">
+            <div class="bd-tile-value">{overdue_count}</div>
+            <div class="bd-tile-label">Awaiting action</div>
         </div>
-        <div class="neb-kpi rose flare-animate-in flare-animate-in-delay-5">
-            <div class="neb-kpi-icon">🔥</div>
-            <div class="neb-kpi-value">{high_intent}</div>
-            <div class="neb-kpi-label">High Intent</div>
+        <div class="bd-tile bd-in-5">
+            <div class="bd-tile-value">{high_intent}</div>
+            <div class="bd-tile-label flag">High intent</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -919,19 +806,19 @@ if page == "Command Center":
 
     with col_left:
         # Pipeline Controls
-        st.markdown("<div class='neb-card'>", unsafe_allow_html=True)
-        st.markdown("#### 📧 Inbox Monitoring Pipeline")
+        st.markdown("<div class='bd-card'>", unsafe_allow_html=True)
+        st.markdown("<p class='bd-card-title'>Inbox monitoring pipeline</p>", unsafe_allow_html=True)
 
         c1, c2 = st.columns(2)
         with c1:
-            scan_btn = st.button("⚡ Trigger Scan Now", type="primary", use_container_width=True)
+            scan_btn = st.button("Run inbox scan", type="primary", use_container_width=True)
         with c2:
-            dry_btn = st.button("🧪 Simulate Dry-Run", use_container_width=True)
+            dry_btn = st.button("Dry run (no send)", use_container_width=True)
 
         if scan_btn or dry_btn:
             is_dry = bool(dry_btn)
-            st.markdown("**Pipeline Output:**")
-            with st.spinner("Processing mailbox — scanning Gmail..."):
+            st.markdown("**Pipeline output:**")
+            with st.spinner("Scanning Gmail inbox..."):
                 try:
                     cmd = [sys.executable, os.path.join(BASE, "inbox_monitor.py")]
                     if is_dry:
@@ -956,62 +843,63 @@ if page == "Command Center":
                         env=scan_env,
                     )
                     stdout = res.stdout if res.stdout else "No output returned."
-                    st.markdown(f"<pre class='neb-terminal'>{stdout}</pre>", unsafe_allow_html=True)
+                    st.markdown(f"<pre class='bd-terminal'>{stdout}</pre>", unsafe_allow_html=True)
                     if res.stderr:
-                        with st.expander("⚠️ Warnings / stderr"):
+                        with st.expander("Warnings / stderr"):
                             st.code(res.stderr)
                     st.cache_data.clear()
                     st.rerun()
                 except subprocess.TimeoutExpired:
-                    st.error("⏱️ Scan timed out after 120 seconds. Gmail may be slow — try again.")
+                    st.error("Scan timed out after 120 seconds. Gmail may be slow — try again.")
                 except Exception as e:
-                    st.error(f"Execution Error: {e}")
+                    st.error(f"Execution error: {e}")
         elif not live_connected:
-            st.warning("⚠️ Gmail not connected. Set IMAP_USER and IMAP_PASS in Streamlit secrets.")
+            st.warning("Gmail not connected. Set IMAP_USER and IMAP_PASS in Streamlit secrets.")
         else:
-            st.markdown("<p style='color: var(--text-secondary); font-style: italic;'>Trigger a pipeline scan to read Gmail inboxes, run ML predictions, and execute automatic replies.</p>", unsafe_allow_html=True)
+            st.markdown("<p style='color: var(--ink-dim); font-style: italic;'>Run a scan to read Gmail, score leads, and fire automatic replies.</p>", unsafe_allow_html=True)
 
         st.markdown("</div>", unsafe_allow_html=True)
 
         # Distribution Chart
-        st.markdown("<div class='neb-card'>", unsafe_allow_html=True)
-        st.markdown("#### 📊 Lead Risk Distribution")
+        st.markdown("<div class='bd-card'>", unsafe_allow_html=True)
+        st.markdown("<p class='bd-card-title'>Lead risk distribution</p>", unsafe_allow_html=True)
 
         if total_leads > 0 and "missed_probability" in scored.columns:
             if HAS_PLOTLY:
                 fig = px.histogram(
                     scored, x="missed_probability", nbins=20,
-                    title="Lead Risk Distribution (Threshold = 0.50)",
-                    labels={"missed_probability": "Predicted Missed Probability", "count": "Lead Count"},
-                    color_discrete_sequence=["#ff6b6b"],
+                    title="Lead risk distribution (threshold = 0.50)",
+                    labels={"missed_probability": "Predicted missed probability", "count": "Lead count"},
+                    color_discrete_sequence=["#e8a33d"],
                 )
                 fig.update_layout(
                     paper_bgcolor='rgba(0,0,0,0)',
                     plot_bgcolor='rgba(0,0,0,0)',
-                    font_color='#6b7a90',
-                    title_font_color='#e8ecf1',
+                    font_color='#8b8f99',
+                    font_family='IBM Plex Mono, monospace',
+                    title_font_color='#eae7dd',
                     showlegend=False,
-                    xaxis=dict(showgrid=False, linecolor='rgba(0,212,255,0.06)'),
-                    yaxis=dict(showgrid=True, gridcolor='rgba(0,212,255,0.06)', linecolor='rgba(0,212,255,0.06)'),
+                    xaxis=dict(showgrid=False, linecolor='#2c303a'),
+                    yaxis=dict(showgrid=True, gridcolor='#2c303a', linecolor='#2c303a'),
                     margin=dict(l=40, r=40, t=40, b=40),
                 )
-                fig.add_vline(x=0.5, line_width=2, line_dash="dash", line_color="#fbbf24",
+                fig.add_vline(x=0.5, line_width=2, line_dash="dash", line_color="#c9503f",
                               annotation_text="Threshold", annotation_position="top right")
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 if os.path.exists(CM_IMG) and HAS_PIL:
                     st.image(Image.open(CM_IMG), use_container_width=True)
         else:
-            st.info("No lead metrics scored. Trigger a scan above to ingest data.")
+            st.info("No lead metrics scored yet. Run a scan above to ingest data.")
         st.markdown("</div>", unsafe_allow_html=True)
 
     with col_right:
-        st.markdown("<div class='neb-card' style='height: 100%;'>", unsafe_allow_html=True)
-        st.markdown("#### 🔔 Notification Feed")
+        st.markdown("<div class='bd-card' style='height: 100%;'>", unsafe_allow_html=True)
+        st.markdown("<p class='bd-card-title'>Notification feed</p>", unsafe_allow_html=True)
 
         if isinstance(notifs, list) and notifs:
             if len(unread_notifs) > 0:
-                if st.button(f"✓ Mark all read ({len(unread_notifs)})", use_container_width=True):
+                if st.button(f"Mark all read ({len(unread_notifs)})", use_container_width=True):
                     for n in notifs:
                         n["read"] = True
                     with open(NOTIF_LOG, "w") as f:
@@ -1019,25 +907,26 @@ if page == "Command Center":
                     st.rerun()
 
             unread_count = 0
+            tag_names = {"new_lead": "NEW", "auto_reply": "AUTO", "overdue": "LATE"}
             for i, n in enumerate(reversed(notifs)):
                 if not n.get("read", False) and unread_count < 10:
                     ntype = n.get("type", "info")
-                    icon = {"new_lead": "📧", "auto_reply": "🤖", "overdue": "⚠️"}.get(ntype, "ℹ️")
+                    tag = tag_names.get(ntype, "INFO")
 
                     st.markdown(f"""
-                    <div class="neb-notif {ntype}">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
-                            <span style="font-weight: 600; font-size: 0.88rem; color: var(--text-primary);">{icon} {n.get('title', 'Notification')}</span>
-                            <span style="font-size: 0.7rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">{n.get('timestamp', '')[11:16]}</span>
+                    <div class="bd-notif {ntype}">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.2rem;">
+                            <span style="font-weight: 600; font-size: 0.86rem; color: var(--ink);"><span class="bd-notif-tag">{tag}</span>{n.get('title', 'Notification')}</span>
+                            <span style="font-size: 0.68rem; color: var(--ink-faint); font-family: 'IBM Plex Mono', monospace;">{n.get('timestamp', '')[11:16]}</span>
                         </div>
-                        <div style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; margin-top: 0.2rem;">{n.get('message', '')}</div>
+                        <div style="font-size: 0.8rem; color: var(--ink-dim); line-height: 1.4; margin-top: 0.2rem;">{n.get('message', '')}</div>
                     </div>
                     """, unsafe_allow_html=True)
                     unread_count += 1
             if unread_count == 0:
-                st.markdown("<p style='text-align:center; color:var(--text-muted); padding: 2rem 0;'>All caught up! ✨</p>", unsafe_allow_html=True)
+                st.markdown("<p style='text-align:center; color:var(--ink-faint); padding: 2rem 0;'>All caught up.</p>", unsafe_allow_html=True)
         else:
-            st.markdown("<p style='text-align:center; color:var(--text-muted); padding: 2rem 0;'>No notifications yet.</p>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align:center; color:var(--ink-faint); padding: 2rem 0;'>No notifications yet.</p>", unsafe_allow_html=True)
 
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -1046,23 +935,23 @@ if page == "Command Center":
 #  PAGE: Lead Explorer
 # ══════════════════════════════════════════════════════════
 elif page == "Lead Explorer":
-    st.markdown("<div class='neb-card'>", unsafe_allow_html=True)
-    st.markdown("#### 🔍 Interactive Lead Table & Inspector")
+    st.markdown("<div class='bd-card'>", unsafe_allow_html=True)
+    st.markdown("<p class='bd-card-title'>Lead table &amp; inspector</p>", unsafe_allow_html=True)
 
     scored = load_scored_leads()
 
     if scored.empty:
-        st.warning("No leads recorded. Please trigger an inbox scan to fetch records.")
+        st.warning("No leads recorded. Run an inbox scan to fetch records.")
     else:
         has_gmail_headers = "_customer_name" in scored.columns
 
         c1, c2, c3, c4 = st.columns(4)
         with c1:
-            q_search = st.text_input("🔍 Search Customer / Email", "")
+            q_search = st.text_input("Search customer / email", "")
         with c2:
-            q_status = st.selectbox("Pipeline Status", ["All", "Missed Leads", "Responded (Low risk)"])
+            q_status = st.selectbox("Pipeline status", ["All", "Missed leads", "Responded (low risk)"])
         with c3:
-            q_intent = st.selectbox("High Intent", ["All", "Yes", "No"])
+            q_intent = st.selectbox("High intent", ["All", "Yes", "No"])
         with c4:
             channels = list(scored["channel"].unique()) if "channel" in scored.columns else ["Gmail"]
             q_channel = st.selectbox("Channel", ["All"] + channels)
@@ -1078,7 +967,7 @@ elif page == "Lead Explorer":
             else:
                 filtered = filtered[filtered["message_text"].str.lower().str.contains(s_pat, na=False)]
         if q_status != "All":
-            val = 1 if q_status == "Missed Leads" else 0
+            val = 1 if q_status == "Missed leads" else 0
             filtered = filtered[filtered["predicted_missed"] == val]
         if q_intent != "All":
             val = 1 if q_intent == "Yes" else 0
@@ -1093,8 +982,8 @@ elif page == "Lead Explorer":
             rename_map = {
                 "lead_id": "Lead ID", "_customer_name": "Customer",
                 "_customer_email": "Email", "_subject": "Subject",
-                "channel": "Source", "response_gap_hrs": "Gap (Hrs)",
-                "high_intent_flag": "High Intent", "missed_probability": "Risk Score",
+                "channel": "Source", "response_gap_hrs": "Gap (hrs)",
+                "high_intent_flag": "High intent", "missed_probability": "Risk score",
                 "predicted_missed": "Missed",
             }
         else:
@@ -1103,8 +992,8 @@ elif page == "Lead Explorer":
             show_cols = [c for c in show_cols if c in filtered.columns]
             rename_map = {
                 "lead_id": "Lead ID", "channel": "Source",
-                "message_text": "Inquiry", "response_gap_hrs": "Gap (Hrs)",
-                "high_intent_flag": "High Intent", "missed_probability": "Risk Score",
+                "message_text": "Inquiry", "response_gap_hrs": "Gap (hrs)",
+                "high_intent_flag": "High intent", "missed_probability": "Risk score",
                 "predicted_missed": "Missed",
             }
 
@@ -1112,17 +1001,17 @@ elif page == "Lead Explorer":
         if "missed_probability" in display_df.columns:
             display_df["missed_probability"] = display_df["missed_probability"].apply(lambda x: f"{x:.1%}")
         if "predicted_missed" in display_df.columns:
-            display_df["predicted_missed"] = display_df["predicted_missed"].map({1: "🔴 MISSED", 0: "🟢 Safe"})
+            display_df["predicted_missed"] = display_df["predicted_missed"].map({1: "MISSED", 0: "Responded"})
         if "high_intent_flag" in display_df.columns:
-            display_df["high_intent_flag"] = display_df["high_intent_flag"].map({1: "🔥 High", 0: "Normal"})
+            display_df["high_intent_flag"] = display_df["high_intent_flag"].map({1: "High", 0: "Normal"})
         display_df = display_df.rename(columns=rename_map)
 
         st.dataframe(display_df, use_container_width=True, height=300)
 
         st.markdown("---")
-        st.markdown("#### 🔍 Lead Inspector")
+        st.markdown("<p class='bd-card-title'>Lead inspector</p>", unsafe_allow_html=True)
 
-        selected_id = st.selectbox("Select a Lead ID:", ["-- None --"] + list(filtered["lead_id"].unique()))
+        selected_id = st.selectbox("Select a lead ID:", ["-- None --"] + list(filtered["lead_id"].unique()))
 
         if selected_id != "-- None --":
             lead_row = filtered[filtered["lead_id"] == selected_id].iloc[0].to_dict()
@@ -1130,7 +1019,7 @@ elif page == "Lead Explorer":
             d_col1, d_col2 = st.columns([1, 1])
 
             with d_col1:
-                st.markdown("<div style='background:rgba(17,13,26,0.4); padding:1.25rem; border-radius:var(--radius-sm); border:1px solid var(--flare-border);'>", unsafe_allow_html=True)
+                st.markdown("<div style='background:var(--board-panel-alt); padding:1.2rem; border-radius:var(--radius-sm); border:1px solid var(--board-line);'>", unsafe_allow_html=True)
                 st.markdown(f"**Lead ID:** `{lead_row.get('lead_id', 'N/A')}`")
 
                 if has_gmail_headers:
@@ -1141,16 +1030,16 @@ elif page == "Lead Explorer":
                 else:
                     st.markdown(f"**Source:** {lead_row.get('channel', 'N/A')}")
 
-                st.markdown(f"**Response Gap:** {lead_row.get('response_gap_hrs', 0):.1f} hours")
-                st.markdown(f"**Risk Score:** `{lead_row.get('missed_probability', 0):.2f}`")
-                st.markdown(f"**Status:** {'🔴 MISSED LEAD' if lead_row.get('predicted_missed') == 1 else '🟢 Responded'}")
+                st.markdown(f"**Response gap:** {lead_row.get('response_gap_hrs', 0):.1f} hours")
+                st.markdown(f"**Risk score:** `{lead_row.get('missed_probability', 0):.2f}`")
+                st.markdown(f"**Status:** {'MISSED LEAD' if lead_row.get('predicted_missed') == 1 else 'Responded'}")
 
-                st.markdown("**Original Message:**")
+                st.markdown("**Original message:**")
                 st.info(lead_row.get("message_text", "No message"))
                 st.markdown("</div>", unsafe_allow_html=True)
 
             with d_col2:
-                st.markdown("**Smart Auto-Reply Preview:**")
+                st.markdown("**Smart auto-reply preview:**")
                 try:
                     from smart_reply_engine import generate_reply
                     reply_payload = generate_reply(
@@ -1161,26 +1050,26 @@ elif page == "Lead Explorer":
                         channel=lead_row.get("channel", "Email"),
                     )
                     st.markdown(f"""
-                    <span class="neb-badge" style="background: var(--sun-glow-dim); color: var(--sun-glow); border: 1px solid rgba(255,140,50,0.2); margin-bottom: 1rem;">
+                    <span class="bd-tag" style="background: var(--flap-amber-dim); color: var(--flap-amber); border: 1px solid rgba(232,163,61,0.25); margin-bottom: 0.8rem;">
                         Intent: {reply_payload['detected_intent'].upper()}
                     </span>
                     """, unsafe_allow_html=True)
 
                     st.markdown(f"""
-                    <div class="neb-email">
-                        <div class="neb-email-header">
+                    <div class="bd-email">
+                        <div class="bd-email-header">
                             <div>From: <span>Sales Team &lt;noreply@yourcompany.com&gt;</span></div>
                             <div>To: <span>{lead_row.get('_customer_name', 'Valued Customer')} &lt;{lead_row.get('_customer_email', 'customer@example.com')}&gt;</span></div>
                             <div>Subject: <span>{reply_payload["reply_subject"]}</span></div>
                         </div>
-                        <div class="neb-email-body">{reply_payload["reply_body"]}</div>
+                        <div class="bd-email-body">{reply_payload["reply_body"]}</div>
                     </div>
                     """, unsafe_allow_html=True)
                 except Exception as e:
                     st.error(f"Could not load smart reply templates: {e}")
 
             # Open in Modal button
-            if st.button("🔎 Open Full Detail Modal", use_container_width=True):
+            if st.button("View full detail", use_container_width=True):
                 show_lead_dialog(lead_row, has_gmail_headers)
         else:
             st.info("Pick a lead ID above to drill down into details.")
@@ -1192,23 +1081,23 @@ elif page == "Lead Explorer":
 #  PAGE: Auto-Replies Tracker
 # ══════════════════════════════════════════════════════════
 elif page == "Auto-Replies Tracker":
-    st.markdown("<div class='neb-card'>", unsafe_allow_html=True)
-    st.markdown("#### 📬 Automated Auto-Replies History")
+    st.markdown("<div class='bd-card'>", unsafe_allow_html=True)
+    st.markdown("<p class='bd-card-title'>Automated auto-replies history</p>", unsafe_allow_html=True)
 
     reply_log = load_json_log(REPLY_LOG)
     followup_status = load_json_log(FOLLOWUP_LOG)
 
     if not reply_log:
-        st.info("No auto-replies logged yet. They are generated when the inbox monitoring detects new missed leads.")
+        st.info("No auto-replies logged yet. They're generated when the inbox scan detects new missed leads.")
     else:
         reply_df = pd.DataFrame(reply_log)
         st.markdown("---")
-        st.markdown("#### Sent Reply Logs")
+        st.markdown("<p class='bd-card-title'>Sent reply logs</p>", unsafe_allow_html=True)
         show_cols = [c for c in ["lead_id", "customer_name", "customer_email", "reply_subject", "detected_intent", "replied_at"] if c in reply_df.columns]
         st.dataframe(reply_df[show_cols], use_container_width=True)
 
         st.markdown("---")
-        st.markdown("#### ⌛ Overdue Human Follow-Up")
+        st.markdown("<p class='bd-card-title'>Overdue human follow-up</p>", unsafe_allow_html=True)
 
         if followup_status:
             fu_items = []
@@ -1219,8 +1108,8 @@ elif page == "Auto-Replies Tracker":
                         "customer_name": info.get("customer_name", ""),
                         "customer_email": info.get("customer_email", ""),
                         "auto_replied_at": info.get("auto_replied_at", "—"),
-                        "human_follow_up": "✅ Done" if info.get("human_followed_up") else "⌛ Pending",
-                        "alert_escalated": "🔥 Overdue" if info.get("overdue_notified") else "—",
+                        "human_follow_up": "Done" if info.get("human_followed_up") else "Pending",
+                        "alert_escalated": "Overdue" if info.get("overdue_notified") else "—",
                     })
 
             fu_df = pd.DataFrame(fu_items)
@@ -1229,15 +1118,15 @@ elif page == "Auto-Replies Tracker":
             if pending_leads:
                 col_sel, col_act = st.columns([2, 1])
                 with col_sel:
-                    action_id = st.selectbox("Mark Lead as Resolved", ["-- Select --"] + pending_leads)
+                    action_id = st.selectbox("Mark lead as resolved", ["-- Select --"] + pending_leads)
                 with col_act:
                     st.markdown("<div style='margin-top:1.75rem;'></div>", unsafe_allow_html=True)
-                    if st.button("✅ Complete Human Action", use_container_width=True) and action_id != "-- Select --":
+                    if st.button("Mark resolved", use_container_width=True) and action_id != "-- Select --":
                         followup_status[action_id]["human_followed_up"] = True
                         followup_status[action_id]["human_followed_up_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         with open(FOLLOWUP_LOG, "w") as f:
                             json.dump(followup_status, f, indent=2, default=str)
-                        st.success(f"Lead {action_id} marked as resolved!")
+                        st.success(f"Lead {action_id} marked as resolved.")
                         st.rerun()
 
             st.dataframe(fu_df, use_container_width=True)
@@ -1251,8 +1140,8 @@ elif page == "Auto-Replies Tracker":
 #  PAGE: Interactive Pipeline Graph
 # ══════════════════════════════════════════════════════════
 elif page == "Interactive Pipeline Graph":
-    st.markdown("<div class='neb-card'>", unsafe_allow_html=True)
-    st.markdown("#### 🌊 Lead Flow Pipeline")
+    st.markdown("<div class='bd-card'>", unsafe_allow_html=True)
+    st.markdown("<p class='bd-card-title'>Lead flow pipeline</p>", unsafe_allow_html=True)
 
     scored = load_scored_leads()
     reply_log = load_json_log(REPLY_LOG)
@@ -1260,7 +1149,7 @@ elif page == "Interactive Pipeline Graph":
     if len(scored) == 0:
         st.info("No leads available to visualize.")
     else:
-        st.markdown("<p style='color: var(--text-secondary);'>Interactive visualization of how leads flow through your sales pipeline.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color: var(--ink-dim);'>How leads move through the pipeline, from first contact to resolution.</p>", unsafe_allow_html=True)
         total = len(scored)
         missed = int(scored["predicted_missed"].sum()) if "predicted_missed" in scored.columns else 0
         responded = total - missed
@@ -1276,25 +1165,26 @@ elif page == "Interactive Pipeline Graph":
             fig = go.Figure(data=[go.Sankey(
                 node=dict(
                     pad=15, thickness=20,
-                    line=dict(color="rgba(0,212,255,0.08)", width=0.5),
-                    label=["Total Leads", "Responded (Safe)", "Missed Leads",
-                           "High Intent (Missed)", "Low Intent (Missed)",
-                           "Auto-Replied", "Awaiting Human"],
-                    color=["#00d4ff", "#10b981", "#ff6b6b", "#fbbf24", "#3d4a5c", "#10b981", "#ff6b6b"],
+                    line=dict(color="#2c303a", width=0.5),
+                    label=["Total leads", "Responded (safe)", "Missed leads",
+                           "High intent (missed)", "Low intent (missed)",
+                           "Auto-replied", "Awaiting human"],
+                    color=["#8b8f99", "#4f9c8f", "#c9503f", "#e8a33d", "#52565f", "#4f9c8f", "#c9503f"],
                 ),
                 link=dict(
                     source=[0, 0, 2, 2, 3, 3],
                     target=[1, 2, 3, 4, 5, 6],
                     value=[max(responded, 1), max(missed, 1), max(high_intent_missed, 1),
                            max(low_intent_missed, 1), max(auto_replied, 1), max(awaiting, 1)],
-                    color=["rgba(16,185,129,0.2)", "rgba(255,107,107,0.2)", "rgba(251,191,36,0.2)",
-                           "rgba(61,74,92,0.2)", "rgba(16,185,129,0.2)", "rgba(255,107,107,0.2)"],
+                    color=["rgba(79,156,143,0.2)", "rgba(201,80,63,0.2)", "rgba(232,163,61,0.2)",
+                           "rgba(82,86,95,0.2)", "rgba(79,156,143,0.2)", "rgba(201,80,63,0.2)"],
                 ),
             )])
             fig.update_layout(
-                title_text="Customer Journey & Sales Bottlenecks",
-                font_size=14, paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)', font_color='#e8ecf1', height=600,
+                title_text="Customer journey &amp; sales bottlenecks",
+                font_size=13, paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)', font_color='#eae7dd',
+                font_family='IBM Plex Mono, monospace', height=600,
             )
             st.plotly_chart(fig, use_container_width=True)
         else:
@@ -1313,9 +1203,9 @@ elif page == "Performance Overview":
     reply_log = load_json_log(REPLY_LOG)
     followup_status = load_json_log(FOLLOWUP_LOG)
 
-    st.markdown("<div class='neb-card'>", unsafe_allow_html=True)
-    st.markdown("#### 📈 Performance Overview")
-    st.markdown("<p style='color:var(--text-secondary); margin-top:-0.5rem;'>Your sales lead recovery at a glance.</p>", unsafe_allow_html=True)
+    st.markdown("<div class='bd-card'>", unsafe_allow_html=True)
+    st.markdown("<p class='bd-card-title'>Performance overview</p>", unsafe_allow_html=True)
+    st.markdown("<p style='color:var(--ink-dim); margin-top:-0.5rem;'>Your sales lead recovery at a glance.</p>", unsafe_allow_html=True)
 
     now = datetime.now()
     week_ago = now - timedelta(days=7)
@@ -1362,57 +1252,53 @@ elif page == "Performance Overview":
 
     # KPI Cards
     st.markdown(f"""
-    <div class="neb-kpi-row">
-        <div class="neb-kpi ember flare-animate-in flare-animate-in-delay-1">
-            <div class="neb-kpi-icon">🚨</div>
-            <div class="neb-kpi-value">{missed_total}</div>
-            <div class="neb-kpi-label">Missed Detected</div>
+    <div class="bd-tile-row">
+        <div class="bd-tile rust bd-in-1">
+            <div class="bd-tile-value">{missed_total}</div>
+            <div class="bd-tile-label">Missed detected</div>
         </div>
-        <div class="neb-kpi sun flare-animate-in flare-animate-in-delay-2">
-            <div class="neb-kpi-icon">🤖</div>
-            <div class="neb-kpi-value">{auto_reply_count}</div>
-            <div class="neb-kpi-label">Auto Follow-Ups</div>
+        <div class="bd-tile teal bd-in-2">
+            <div class="bd-tile-value">{auto_reply_count}</div>
+            <div class="bd-tile-label">Auto follow-ups</div>
         </div>
-        <div class="neb-kpi teal flare-animate-in flare-animate-in-delay-3">
-            <div class="neb-kpi-icon">📈</div>
-            <div class="neb-kpi-value">{recovery_rate:.0f}%</div>
-            <div class="neb-kpi-label">Recovery Rate</div>
+        <div class="bd-tile bd-in-3">
+            <div class="bd-tile-value">{recovery_rate:.0f}%</div>
+            <div class="bd-tile-label">Recovery rate</div>
         </div>
-        <div class="neb-kpi rose flare-animate-in flare-animate-in-delay-4">
-            <div class="neb-kpi-icon">💾</div>
-            <div class="neb-kpi-value">{leads_saved}</div>
-            <div class="neb-kpi-label">Leads Saved</div>
+        <div class="bd-tile teal bd-in-4">
+            <div class="bd-tile-value">{leads_saved}</div>
+            <div class="bd-tile-label">Leads saved</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
     # This Week vs Last Week
-    st.markdown("<div class='neb-card'>", unsafe_allow_html=True)
-    st.markdown("#### 📅 This Week vs Last Week")
+    st.markdown("<div class='bd-card'>", unsafe_allow_html=True)
+    st.markdown("<p class='bd-card-title'>This week vs last week</p>", unsafe_allow_html=True)
 
     week_col1, week_col2 = st.columns(2)
     with week_col1:
         delta_w = missed_this_week - missed_last_week
         delta_color = "normal" if delta_w <= 0 else "inverse"
-        st.metric(label="Missed This Week", value=missed_this_week,
+        st.metric(label="Missed this week", value=missed_this_week,
                   delta=f"{delta_w:+d} vs last week" if missed_last_week > 0 else None,
                   delta_color=delta_color)
     with week_col2:
-        st.metric(label="Missed Last Week", value=missed_last_week)
+        st.metric(label="Missed last week", value=missed_last_week)
 
     if HAS_PLOTLY and (missed_this_week > 0 or missed_last_week > 0):
         fig = go.Figure(data=[
-            go.Bar(name='Last Week', x=['Missed Leads'], y=[missed_last_week],
-                   marker_color='rgba(107, 122, 144, 0.5)'),
-            go.Bar(name='This Week', x=['Missed Leads'], y=[missed_this_week],
-                   marker_color='#ff6b6b'),
+            go.Bar(name='Last week', x=['Missed leads'], y=[missed_last_week],
+                   marker_color='#52565f'),
+            go.Bar(name='This week', x=['Missed leads'], y=[missed_this_week],
+                   marker_color='#c9503f'),
         ])
         fig.update_layout(
             barmode='group', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-            font_color='#6b7a90', showlegend=True,
+            font_color='#8b8f99', font_family='IBM Plex Mono, monospace', showlegend=True,
             legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
             margin=dict(l=40, r=40, t=20, b=40),
-            yaxis=dict(showgrid=True, gridcolor='rgba(0,212,255,0.06)'),
+            yaxis=dict(showgrid=True, gridcolor='#2c303a'),
             xaxis=dict(showgrid=False),
         )
         st.plotly_chart(fig, use_container_width=True)
@@ -1420,9 +1306,9 @@ elif page == "Performance Overview":
     st.markdown("</div>", unsafe_allow_html=True)
 
     # 4-Week Trend
-    st.markdown("<div class='neb-card'>", unsafe_allow_html=True)
-    st.markdown("#### 📈 4-Week Trend")
-    st.markdown("<p style='color:var(--text-secondary); margin-top:-0.5rem;'>Missed leads over the past 4 weeks to spot patterns.</p>", unsafe_allow_html=True)
+    st.markdown("<div class='bd-card'>", unsafe_allow_html=True)
+    st.markdown("<p class='bd-card-title'>4-week trend</p>", unsafe_allow_html=True)
+    st.markdown("<p style='color:var(--ink-dim); margin-top:-0.5rem;'>Missed leads over the past 4 weeks to spot patterns.</p>", unsafe_allow_html=True)
 
     if total_leads > 0 and "_parsed_time" in scored.columns and HAS_PLOTLY:
         try:
@@ -1440,21 +1326,21 @@ elif page == "Performance Overview":
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
                     x=weekly["week"], y=weekly["total"],
-                    mode="lines+markers", name="Total Leads",
-                    line=dict(color="#00d4ff", width=2), marker=dict(size=8),
+                    mode="lines+markers", name="Total leads",
+                    line=dict(color="#8b8f99", width=2), marker=dict(size=8),
                 ))
                 fig.add_trace(go.Scatter(
                     x=weekly["week"], y=weekly["missed"],
-                    mode="lines+markers", name="Missed Leads",
-                    line=dict(color="#ff6b6b", width=2), marker=dict(size=8),
-                    fill="tozeroy", fillcolor="rgba(255,107,107,0.06)",
+                    mode="lines+markers", name="Missed leads",
+                    line=dict(color="#c9503f", width=2), marker=dict(size=8),
+                    fill="tozeroy", fillcolor="rgba(201,80,63,0.08)",
                 ))
                 fig.update_layout(
                     paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                    font_color='#6b7a90', showlegend=True,
+                    font_color='#8b8f99', font_family='IBM Plex Mono, monospace', showlegend=True,
                     legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
                     margin=dict(l=40, r=40, t=20, b=40),
-                    yaxis=dict(showgrid=True, gridcolor='rgba(0,212,255,0.06)', title='Leads'),
+                    yaxis=dict(showgrid=True, gridcolor='#2c303a', title='Leads'),
                     xaxis=dict(showgrid=False, title='Week'),
                 )
                 st.plotly_chart(fig, use_container_width=True)
@@ -1468,39 +1354,39 @@ elif page == "Performance Overview":
     st.markdown("</div>", unsafe_allow_html=True)
 
     # Leads Saved: Before vs After
-    st.markdown("<div class='neb-card'>", unsafe_allow_html=True)
-    st.markdown("#### 💡 Estimated Leads Saved")
+    st.markdown("<div class='bd-card'>", unsafe_allow_html=True)
+    st.markdown("<p class='bd-card-title'>Estimated leads saved</p>", unsafe_allow_html=True)
 
     saved_col1, saved_col2 = st.columns(2)
     with saved_col1:
         st.markdown(f"""
-        <div style="background: var(--ember-dim); border:1px solid rgba(255,94,58,0.15); border-radius:var(--radius-md); padding:1.25rem; text-align:center;">
-            <div style="font-size:0.72rem; color:var(--ember); text-transform:uppercase; letter-spacing:0.06em; font-weight:600; margin-bottom:0.5rem;">Without System</div>
-            <div style="font-size:2.5rem; font-weight:700; color:var(--ember); font-family:'JetBrains Mono',monospace;">{missed_total}</div>
-            <div style="font-size:0.82rem; color:var(--text-secondary); margin-top:0.25rem;">leads would have been lost</div>
+        <div style="background: var(--flap-rust-dim); border:1px solid rgba(201,80,63,0.2); border-radius:var(--radius-md); padding:1.2rem; text-align:center;">
+            <div style="font-size:0.68rem; color:var(--flap-rust); text-transform:uppercase; letter-spacing:0.08em; font-weight:600; margin-bottom:0.5rem; font-family:'IBM Plex Mono',monospace;">Without system</div>
+            <div style="font-size:2.3rem; font-weight:700; color:var(--flap-rust); font-family:'IBM Plex Mono',monospace;">{missed_total}</div>
+            <div style="font-size:0.8rem; color:var(--ink-dim); margin-top:0.25rem;">leads would have been lost</div>
         </div>
         """, unsafe_allow_html=True)
     with saved_col2:
         st.markdown(f"""
-        <div style="background: var(--teal-dim); border:1px solid rgba(45,212,191,0.15); border-radius:var(--radius-md); padding:1.25rem; text-align:center;">
-            <div style="font-size:0.72rem; color:var(--teal); text-transform:uppercase; letter-spacing:0.06em; font-weight:600; margin-bottom:0.5rem;">With System</div>
-            <div style="font-size:2.5rem; font-weight:700; color:var(--teal); font-family:'JetBrains Mono',monospace;">{leads_saved}</div>
-            <div style="font-size:0.82rem; color:var(--text-secondary); margin-top:0.25rem;">leads recovered via auto-reply</div>
+        <div style="background: var(--flap-teal-dim); border:1px solid rgba(79,156,143,0.2); border-radius:var(--radius-md); padding:1.2rem; text-align:center;">
+            <div style="font-size:0.68rem; color:var(--flap-teal); text-transform:uppercase; letter-spacing:0.08em; font-weight:600; margin-bottom:0.5rem; font-family:'IBM Plex Mono',monospace;">With system</div>
+            <div style="font-size:2.3rem; font-weight:700; color:var(--flap-teal); font-family:'IBM Plex Mono',monospace;">{leads_saved}</div>
+            <div style="font-size:0.8rem; color:var(--ink-dim); margin-top:0.25rem;">leads recovered via auto-reply</div>
         </div>
         """, unsafe_allow_html=True)
 
     if HAS_PLOTLY and missed_total > 0:
         fig = go.Figure(data=[
-            go.Bar(name='Without System', x=['Leads'], y=[missed_total], marker_color='#ff6b6b'),
-            go.Bar(name='Recovered', x=['Leads'], y=[leads_saved], marker_color='#10b981'),
+            go.Bar(name='Without system', x=['Leads'], y=[missed_total], marker_color='#c9503f'),
+            go.Bar(name='Recovered', x=['Leads'], y=[leads_saved], marker_color='#4f9c8f'),
         ])
         fig.update_layout(
-            barmode='group', title='Leads Lost vs Leads Recovered',
+            barmode='group', title='Leads lost vs leads recovered',
             paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-            font_color='#6b7a90', showlegend=True,
+            font_color='#8b8f99', font_family='IBM Plex Mono, monospace', showlegend=True,
             legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
             margin=dict(l=40, r=40, t=40, b=40),
-            yaxis=dict(showgrid=True, gridcolor='rgba(0,212,255,0.06)'),
+            yaxis=dict(showgrid=True, gridcolor='#2c303a'),
             xaxis=dict(showgrid=False),
         )
         st.plotly_chart(fig, use_container_width=True)
@@ -1510,20 +1396,20 @@ elif page == "Performance Overview":
     st.markdown("</div>", unsafe_allow_html=True)
 
     # Recovery Details
-    st.markdown("<div class='neb-card'>", unsafe_allow_html=True)
-    st.markdown("#### 🔍 Recovery Breakdown")
+    st.markdown("<div class='bd-card'>", unsafe_allow_html=True)
+    st.markdown("<p class='bd-card-title'>Recovery breakdown</p>", unsafe_allow_html=True)
 
     if missed_total > 0:
         detail_col1, detail_col2, detail_col3 = st.columns(3)
         with detail_col1:
             auto_pct = (auto_reply_count / missed_total * 100) if missed_total > 0 else 0
-            st.metric(label="Auto-Replied", value=auto_reply_count, delta=f"{auto_pct:.0f}% of missed")
+            st.metric(label="Auto-replied", value=auto_reply_count, delta=f"{auto_pct:.0f}% of missed")
         with detail_col2:
             human_pct = (recovered / missed_total * 100) if missed_total > 0 else 0
-            st.metric(label="Human Follow-Up", value=recovered, delta=f"{human_pct:.0f}% of missed")
+            st.metric(label="Human follow-up", value=recovered, delta=f"{human_pct:.0f}% of missed")
         with detail_col3:
             pending = max(0, missed_total - auto_reply_count - recovered)
-            st.metric(label="Still Pending", value=pending,
+            st.metric(label="Still pending", value=pending,
                       delta="Needs attention" if pending > 0 else "All handled",
                       delta_color="inverse" if pending > 0 else "normal")
 
@@ -1531,23 +1417,23 @@ elif page == "Performance Overview":
             fig = go.Figure(go.Indicator(
                 mode="gauge+number+delta",
                 value=recovery_rate,
-                title={"text": "Recovery Rate (%)", "font": {"color": "#e8ecf1"}},
-                number={"suffix": "%", "font": {"color": "#e8ecf1"}},
+                title={"text": "Recovery rate (%)", "font": {"color": "#eae7dd", "family": "IBM Plex Mono, monospace"}},
+                number={"suffix": "%", "font": {"color": "#eae7dd", "family": "IBM Plex Mono, monospace"}},
                 gauge={
-                    "axis": {"range": [0, 100], "tickcolor": "#6b7a90"},
-                    "bar": {"color": "#10b981"},
-                    "bgcolor": "rgba(17,13,26,0.5)",
+                    "axis": {"range": [0, 100], "tickcolor": "#8b8f99"},
+                    "bar": {"color": "#4f9c8f"},
+                    "bgcolor": "#1c1f26",
                     "steps": [
-                        {"range": [0, 50], "color": "rgba(255,107,107,0.12)"},
-                        {"range": [50, 80], "color": "rgba(251,191,36,0.12)"},
-                        {"range": [80, 100], "color": "rgba(16,185,129,0.12)"},
+                        {"range": [0, 50], "color": "rgba(201,80,63,0.12)"},
+                        {"range": [50, 80], "color": "rgba(232,163,61,0.12)"},
+                        {"range": [80, 100], "color": "rgba(79,156,143,0.12)"},
                     ],
-                    "threshold": {"line": {"color": "#00d4ff", "width": 3}, "thickness": 0.8, "value": recovery_rate},
+                    "threshold": {"line": {"color": "#e8a33d", "width": 3}, "thickness": 0.8, "value": recovery_rate},
                 },
             ))
             fig.update_layout(
                 paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                font_color='#6b7a90', height=300,
+                font_color='#8b8f99', height=300,
                 margin=dict(l=40, r=40, t=40, b=40),
             )
             st.plotly_chart(fig, use_container_width=True)
@@ -1561,9 +1447,9 @@ elif page == "Performance Overview":
 #  PAGE: Workflow Settings
 # ══════════════════════════════════════════════════════════
 elif page == "Workflow Settings":
-    st.markdown("<div class='neb-card'>", unsafe_allow_html=True)
-    st.markdown("#### ⚙️ Workflow Configuration & Business Settings")
-    st.markdown("<p style='color:var(--text-secondary); margin-top:-0.5rem;'>Update templates, courses, placement rates, and notification boundaries. Changes save immediately.</p>", unsafe_allow_html=True)
+    st.markdown("<div class='bd-card'>", unsafe_allow_html=True)
+    st.markdown("<p class='bd-card-title'>Workflow configuration &amp; business settings</p>", unsafe_allow_html=True)
+    st.markdown("<p style='color:var(--ink-dim); margin-top:-0.5rem;'>Update templates, courses, placement rates, and notification boundaries. Changes save immediately.</p>", unsafe_allow_html=True)
 
     save_status = st.empty()
 
@@ -1571,18 +1457,18 @@ elif page == "Workflow Settings":
         sc1, sc2 = st.columns(2)
 
         with sc1:
-            st.markdown("##### 🏢 Business Identity")
-            company_name = st.text_input("Company Name", overrides.get("COMPANY_NAME", config.COMPANY_NAME))
-            sender_name = st.text_input("Sender Name", overrides.get("SENDER_NAME", config.SENDER_NAME))
-            team_phone = st.text_input("Contact Phone", overrides.get("TEAM_PHONE", config.TEAM_PHONE))
-            team_email = st.text_input("Contact Email", overrides.get("TEAM_EMAIL", config.TEAM_EMAIL))
+            st.markdown("##### Business identity")
+            company_name = st.text_input("Company name", overrides.get("COMPANY_NAME", config.COMPANY_NAME))
+            sender_name = st.text_input("Sender name", overrides.get("SENDER_NAME", config.SENDER_NAME))
+            team_phone = st.text_input("Contact phone", overrides.get("TEAM_PHONE", config.TEAM_PHONE))
+            team_email = st.text_input("Contact email", overrides.get("TEAM_EMAIL", config.TEAM_EMAIL))
             website_url = st.text_input("Website URL", overrides.get("WEBSITE_URL", config.WEBSITE_URL))
 
-            st.markdown("##### ⚠️ Escalation Rules")
-            overdue_hrs = st.number_input("Overdue Alert (Hours)", value=int(overrides.get("HOURS_BEFORE_OVERDUE", config.HOURS_BEFORE_OVERDUE)), min_value=1)
-            esc_hrs = st.number_input("Escalation (Hours)", value=int(overrides.get("HOURS_BEFORE_ESCALATION", config.HOURS_BEFORE_ESCALATION)), min_value=1)
+            st.markdown("##### Escalation rules")
+            overdue_hrs = st.number_input("Overdue alert (hours)", value=int(overrides.get("HOURS_BEFORE_OVERDUE", config.HOURS_BEFORE_OVERDUE)), min_value=1)
+            esc_hrs = st.number_input("Escalation (hours)", value=int(overrides.get("HOURS_BEFORE_ESCALATION", config.HOURS_BEFORE_ESCALATION)), min_value=1)
 
-            st.markdown("##### 📊 Recovery Rate Alert")
+            st.markdown("##### Recovery rate alert")
             recovery_threshold = st.slider(
                 "Alert when recovery rate drops below (%)", min_value=10, max_value=100,
                 value=int(overrides.get("RECOVERY_RATE_THRESHOLD", config.RECOVERY_RATE_THRESHOLD)),
@@ -1590,25 +1476,25 @@ elif page == "Workflow Settings":
             )
 
         with sc2:
-            st.markdown("##### 📚 Course Offerings")
-            placement_rate = st.text_input("Placement Rate", overrides.get("PLACEMENT_RATE", config.PLACEMENT_RATE))
-            partners = st.text_input("Hiring Partners", overrides.get("COMPANY_PARTNERS", config.COMPANY_PARTNERS))
-            discount = st.text_area("Discount Text", overrides.get("DISCOUNT_INFO", config.DISCOUNT_INFO), height=80)
-            scholarship = st.text_area("Scholarship Info", overrides.get("SCHOLARSHIP_INFO", config.SCHOLARSHIP_INFO), height=80)
-            emi_text = st.text_area("EMI Details", overrides.get("EMI_INFO", config.EMI_INFO), height=80)
+            st.markdown("##### Course offerings")
+            placement_rate = st.text_input("Placement rate", overrides.get("PLACEMENT_RATE", config.PLACEMENT_RATE))
+            partners = st.text_input("Hiring partners", overrides.get("COMPANY_PARTNERS", config.COMPANY_PARTNERS))
+            discount = st.text_area("Discount text", overrides.get("DISCOUNT_INFO", config.DISCOUNT_INFO), height=80)
+            scholarship = st.text_area("Scholarship info", overrides.get("SCHOLARSHIP_INFO", config.SCHOLARSHIP_INFO), height=80)
+            emi_text = st.text_area("EMI details", overrides.get("EMI_INFO", config.EMI_INFO), height=80)
 
-            st.markdown("##### ⏱️ Reply Delay (Seconds)")
+            st.markdown("##### Reply delay (seconds)")
             td1, td2 = st.columns(2)
             with td1:
-                min_delay = st.number_input("Min Delay", value=int(overrides.get("MIN_REPLY_DELAY", config.MIN_REPLY_DELAY)), min_value=1)
+                min_delay = st.number_input("Min delay", value=int(overrides.get("MIN_REPLY_DELAY", config.MIN_REPLY_DELAY)), min_value=1)
             with td2:
-                max_delay = st.number_input("Max Delay", value=int(overrides.get("MAX_REPLY_DELAY", config.MAX_REPLY_DELAY)), min_value=1)
+                max_delay = st.number_input("Max delay", value=int(overrides.get("MAX_REPLY_DELAY", config.MAX_REPLY_DELAY)), min_value=1)
 
-        st.markdown("##### ✍️ Email Signature")
+        st.markdown("##### Email signature")
         sig_val = overrides.get("EMAIL_SIGNATURE", f"Best regards,\n{sender_name}\n{company_name}\nPhone: {team_phone}\nEmail: {team_email}\nWeb: {website_url}")
-        email_signature = st.text_area("Email Signature Block", sig_val, height=120)
+        email_signature = st.text_area("Email signature block", sig_val, height=120)
 
-        submitted = st.form_submit_button("💾 Save & Update Settings", type="primary")
+        submitted = st.form_submit_button("Save settings", type="primary")
 
         if submitted:
             new_overrides = overrides.copy()
@@ -1623,14 +1509,14 @@ elif page == "Workflow Settings":
                 "MAX_REPLY_DELAY": max_delay, "EMAIL_SIGNATURE": email_signature,
             })
             save_overrides(new_overrides)
-            save_status.success("✅ Settings saved successfully!")
+            save_status.success("Settings saved.")
             st.rerun()
 
     st.markdown("</div>", unsafe_allow_html=True)
 
     # Environment Variables Panel
-    st.markdown("<div class='neb-card'>", unsafe_allow_html=True)
-    st.markdown("#### 🔒 Environment Variables")
+    st.markdown("<div class='bd-card'>", unsafe_allow_html=True)
+    st.markdown("<p class='bd-card-title'>Environment variables</p>", unsafe_allow_html=True)
 
     env_list = {
         "SMTP_USER": _get_secret("SMTP_USER"),
@@ -1641,7 +1527,7 @@ elif page == "Workflow Settings":
     }
 
     for key, val in env_list.items():
-        val_str = "❌ Not Set" if not val else f"✅ {val}"
+        val_str = "Not set" if not val else val
         st.markdown(f"**{key}:** `{val_str}`")
 
     st.markdown("</div>", unsafe_allow_html=True)
@@ -1649,7 +1535,7 @@ elif page == "Workflow Settings":
 
 # ── Footer ─────────────────────────────────────────────────
 st.markdown("""
-<div class="neb-footer">
-    Missed-Lead Detector &bull; AI-Powered Sales Command Center &bull; CIT Chennai
+<div class="bd-footer">
+    MISSED-LEAD OPS BOARD · AI-POWERED SALES DISPATCH · CIT CHENNAI
 </div>
 """, unsafe_allow_html=True)
