@@ -711,7 +711,7 @@ with st.sidebar:
     page = st.radio(
         "Go to:",
         ["Command Center", "Lead Explorer", "Auto-Replies Tracker",
-         "Interactive Pipeline Graph", "Performance Overview", "Workflow Settings"],
+         "Performance Overview", "Workflow Settings"],
         label_visibility="collapsed",
     )
 
@@ -945,6 +945,7 @@ elif page == "Lead Explorer":
     else:
         has_gmail_headers = "_customer_name" in scored.columns
 
+        # ── Filters Row ─────────────────────────────────────
         c1, c2, c3, c4 = st.columns(4)
         with c1:
             q_search = st.text_input("Search customer / email", "")
@@ -956,6 +957,7 @@ elif page == "Lead Explorer":
             channels = list(scored["channel"].unique()) if "channel" in scored.columns else ["Gmail"]
             q_channel = st.selectbox("Channel", ["All"] + channels)
 
+        # ── Apply Filters ───────────────────────────────────
         filtered = scored.copy()
         if q_search:
             s_pat = q_search.lower()
@@ -975,6 +977,26 @@ elif page == "Lead Explorer":
         if q_channel != "All" and "channel" in filtered.columns:
             filtered = filtered[filtered["channel"] == q_channel]
 
+        # ── Sort by Risk Score (highest first) ──────────────
+        if "missed_probability" in filtered.columns:
+            filtered = filtered.sort_values("missed_probability", ascending=False)
+
+        # ── Export Button ───────────────────────────────────
+        export_col, count_col = st.columns([1, 3])
+        with export_col:
+            if not filtered.empty:
+                csv_data = filtered.to_csv(index=False)
+                st.download_button(
+                    label="📥 Export CSV",
+                    data=csv_data,
+                    file_name=f"leads_export_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
+        with count_col:
+            st.markdown(f"<p style='color:var(--ink-dim); margin-top:0.5rem; font-size:0.85rem;'>Showing **{len(filtered)}** leads (sorted by risk score)</p>", unsafe_allow_html=True)
+
+        # ── Lead Table ──────────────────────────────────────
         if has_gmail_headers:
             show_cols = ["lead_id", "_customer_name", "_customer_email", "_subject", "channel",
                          "response_gap_hrs", "high_intent_flag", "missed_probability", "predicted_missed"]
@@ -984,7 +1006,7 @@ elif page == "Lead Explorer":
                 "_customer_email": "Email", "_subject": "Subject",
                 "channel": "Source", "response_gap_hrs": "Gap (hrs)",
                 "high_intent_flag": "High intent", "missed_probability": "Risk score",
-                "predicted_missed": "Missed",
+                "predicted_missed": "Status",
             }
         else:
             show_cols = ["lead_id", "channel", "message_text", "response_gap_hrs",
@@ -994,20 +1016,21 @@ elif page == "Lead Explorer":
                 "lead_id": "Lead ID", "channel": "Source",
                 "message_text": "Inquiry", "response_gap_hrs": "Gap (hrs)",
                 "high_intent_flag": "High intent", "missed_probability": "Risk score",
-                "predicted_missed": "Missed",
+                "predicted_missed": "Status",
             }
 
         display_df = filtered[show_cols].copy()
         if "missed_probability" in display_df.columns:
             display_df["missed_probability"] = display_df["missed_probability"].apply(lambda x: f"{x:.1%}")
         if "predicted_missed" in display_df.columns:
-            display_df["predicted_missed"] = display_df["predicted_missed"].map({1: "MISSED", 0: "Responded"})
+            display_df["predicted_missed"] = display_df["predicted_missed"].map({1: "🔴 MISSED", 0: "🟢 Responded"})
         if "high_intent_flag" in display_df.columns:
-            display_df["high_intent_flag"] = display_df["high_intent_flag"].map({1: "High", 0: "Normal"})
+            display_df["high_intent_flag"] = display_df["high_intent_flag"].map({1: "⚡ High", 0: "Normal"})
         display_df = display_df.rename(columns=rename_map)
 
-        st.dataframe(display_df, use_container_width=True, height=300)
+        st.dataframe(display_df, use_container_width=True, height=350)
 
+        # ── Lead Inspector (click-to-view modal) ───────────
         st.markdown("---")
         st.markdown("<p class='bd-card-title'>Lead inspector</p>", unsafe_allow_html=True)
 
@@ -1032,14 +1055,15 @@ elif page == "Lead Explorer":
 
                 st.markdown(f"**Response gap:** {lead_row.get('response_gap_hrs', 0):.1f} hours")
                 st.markdown(f"**Risk score:** `{lead_row.get('missed_probability', 0):.2f}`")
-                st.markdown(f"**Status:** {'MISSED LEAD' if lead_row.get('predicted_missed') == 1 else 'Responded'}")
+                st.markdown(f"**Status:** {'🔴 MISSED LEAD' if lead_row.get('predicted_missed') == 1 else '🟢 Responded'}")
 
                 st.markdown("**Original message:**")
                 st.info(lead_row.get("message_text", "No message"))
                 st.markdown("</div>", unsafe_allow_html=True)
 
             with d_col2:
-                st.markdown("**Smart auto-reply preview:**")
+                # Smart Reply Preview via modal
+                st.markdown("**Quick preview:**")
                 try:
                     from smart_reply_engine import generate_reply
                     reply_payload = generate_reply(
@@ -1054,22 +1078,13 @@ elif page == "Lead Explorer":
                         Intent: {reply_payload['detected_intent'].upper()}
                     </span>
                     """, unsafe_allow_html=True)
-
-                    st.markdown(f"""
-                    <div class="bd-email">
-                        <div class="bd-email-header">
-                            <div>From: <span>Sales Team &lt;noreply@yourcompany.com&gt;</span></div>
-                            <div>To: <span>{lead_row.get('_customer_name', 'Valued Customer')} &lt;{lead_row.get('_customer_email', 'customer@example.com')}&gt;</span></div>
-                            <div>Subject: <span>{reply_payload["reply_subject"]}</span></div>
-                        </div>
-                        <div class="bd-email-body">{reply_payload["reply_body"]}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    st.markdown(f"**Subject:** {reply_payload['reply_subject']}")
+                    st.markdown(reply_payload['reply_body'][:200] + "..." if len(reply_payload['reply_body']) > 200 else reply_payload['reply_body'])
                 except Exception as e:
-                    st.error(f"Could not load smart reply templates: {e}")
+                    st.error(f"Could not load smart reply: {e}")
 
-            # Open in Modal button
-            if st.button("View full detail", use_container_width=True):
+            # Open full modal
+            if st.button("🔍 View full detail", use_container_width=True):
                 show_lead_dialog(lead_row, has_gmail_headers)
         else:
             st.info("Pick a lead ID above to drill down into details.")
@@ -1078,7 +1093,7 @@ elif page == "Lead Explorer":
 
 
 # ══════════════════════════════════════════════════════════
-#  PAGE: Auto-Replies Tracker
+#  PAGE: Auto-Replies Tracker (with bulk actions)
 # ══════════════════════════════════════════════════════════
 elif page == "Auto-Replies Tracker":
     st.markdown("<div class='bd-card'>", unsafe_allow_html=True)
@@ -1091,10 +1106,20 @@ elif page == "Auto-Replies Tracker":
         st.info("No auto-replies logged yet. They're generated when the inbox scan detects new missed leads.")
     else:
         reply_df = pd.DataFrame(reply_log)
-        st.markdown("---")
+
+        # ── Export Button ─────────────────────────────────────
+        csv_data = reply_df.to_csv(index=False)
+        st.download_button(
+            label="📥 Export Reply Logs",
+            data=csv_data,
+            file_name=f"reply_logs_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+            mime="text/csv",
+            use_container_width=False,
+        )
+
         st.markdown("<p class='bd-card-title'>Sent reply logs</p>", unsafe_allow_html=True)
         show_cols = [c for c in ["lead_id", "customer_name", "customer_email", "reply_subject", "detected_intent", "replied_at"] if c in reply_df.columns]
-        st.dataframe(reply_df[show_cols], use_container_width=True)
+        st.dataframe(reply_df[show_cols], use_container_width=True, height=350)
 
         st.markdown("---")
         st.markdown("<p class='bd-card-title'>Overdue human follow-up</p>", unsafe_allow_html=True)
@@ -1115,19 +1140,42 @@ elif page == "Auto-Replies Tracker":
             fu_df = pd.DataFrame(fu_items)
             pending_leads = [item["lead_id"] for item in fu_items if "Pending" in item["human_follow_up"]]
 
+            # ── Bulk Actions ──────────────────────────────────
             if pending_leads:
-                col_sel, col_act = st.columns([2, 1])
-                with col_sel:
-                    action_id = st.selectbox("Mark lead as resolved", ["-- Select --"] + pending_leads)
-                with col_act:
+                st.markdown("<p style='color:var(--ink-dim); font-size:0.85rem; margin-bottom:0.5rem;'>**{count}** leads awaiting human follow-up</p>".format(count=len(pending_leads)), unsafe_allow_html=True)
+
+                bulk_col1, bulk_col2 = st.columns([2, 1])
+                with bulk_col1:
+                    bulk_ids = st.multiselect(
+                        "Select leads to mark as resolved",
+                        pending_leads,
+                        placeholder="Choose leads...",
+                    )
+                with bulk_col2:
                     st.markdown("<div style='margin-top:1.75rem;'></div>", unsafe_allow_html=True)
-                    if st.button("Mark resolved", use_container_width=True) and action_id != "-- Select --":
-                        followup_status[action_id]["human_followed_up"] = True
-                        followup_status[action_id]["human_followed_up_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    if st.button("✅ Mark selected resolved", use_container_width=True, type="primary") and bulk_ids:
+                        for lid in bulk_ids:
+                            followup_status[lid]["human_followed_up"] = True
+                            followup_status[lid]["human_followed_up_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         with open(FOLLOWUP_LOG, "w") as f:
                             json.dump(followup_status, f, indent=2, default=str)
-                        st.success(f"Lead {action_id} marked as resolved.")
+                        st.success(f"Marked {len(bulk_ids)} lead(s) as resolved.")
                         st.rerun()
+
+                # Single-select fallback for quick action
+                with st.expander("Or mark single lead as resolved"):
+                    single_col1, single_col2 = st.columns([2, 1])
+                    with single_col1:
+                        action_id = st.selectbox("Lead ID", ["-- Select --"] + pending_leads, key="single_resolve")
+                    with single_col2:
+                        st.markdown("<div style='margin-top:1.75rem;'></div>", unsafe_allow_html=True)
+                        if st.button("Mark resolved", use_container_width=True) and action_id != "-- Select --":
+                            followup_status[action_id]["human_followed_up"] = True
+                            followup_status[action_id]["human_followed_up_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            with open(FOLLOWUP_LOG, "w") as f:
+                                json.dump(followup_status, f, indent=2, default=str)
+                            st.success(f"Lead {action_id} marked as resolved.")
+                            st.rerun()
 
             st.dataframe(fu_df, use_container_width=True)
         else:
@@ -1136,65 +1184,11 @@ elif page == "Auto-Replies Tracker":
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-# ══════════════════════════════════════════════════════════
-#  PAGE: Interactive Pipeline Graph
-# ══════════════════════════════════════════════════════════
-elif page == "Interactive Pipeline Graph":
-    st.markdown("<div class='bd-card'>", unsafe_allow_html=True)
-    st.markdown("<p class='bd-card-title'>Lead flow pipeline</p>", unsafe_allow_html=True)
 
-    scored = load_scored_leads()
-    reply_log = load_json_log(REPLY_LOG)
-
-    if len(scored) == 0:
-        st.info("No leads available to visualize.")
-    else:
-        st.markdown("<p style='color: var(--ink-dim);'>How leads move through the pipeline, from first contact to resolution.</p>", unsafe_allow_html=True)
-        total = len(scored)
-        missed = int(scored["predicted_missed"].sum()) if "predicted_missed" in scored.columns else 0
-        responded = total - missed
-
-        missed_df = scored[scored["predicted_missed"] == 1] if "predicted_missed" in scored.columns else pd.DataFrame()
-        high_intent_missed = int(missed_df["high_intent_flag"].sum()) if "high_intent_flag" in missed_df.columns else 0
-        low_intent_missed = missed - high_intent_missed
-
-        auto_replied = len(reply_log) if isinstance(reply_log, list) else 0
-        awaiting = max(high_intent_missed - auto_replied, 0)
-
-        if HAS_PLOTLY:
-            fig = go.Figure(data=[go.Sankey(
-                node=dict(
-                    pad=15, thickness=20,
-                    line=dict(color="#2c303a", width=0.5),
-                    label=["Total leads", "Responded (safe)", "Missed leads",
-                           "High intent (missed)", "Low intent (missed)",
-                           "Auto-replied", "Awaiting human"],
-                    color=["#8b8f99", "#4f9c8f", "#c9503f", "#e8a33d", "#52565f", "#4f9c8f", "#c9503f"],
-                ),
-                link=dict(
-                    source=[0, 0, 2, 2, 3, 3],
-                    target=[1, 2, 3, 4, 5, 6],
-                    value=[max(responded, 1), max(missed, 1), max(high_intent_missed, 1),
-                           max(low_intent_missed, 1), max(auto_replied, 1), max(awaiting, 1)],
-                    color=["rgba(79,156,143,0.2)", "rgba(201,80,63,0.2)", "rgba(232,163,61,0.2)",
-                           "rgba(82,86,95,0.2)", "rgba(79,156,143,0.2)", "rgba(201,80,63,0.2)"],
-                ),
-            )])
-            fig.update_layout(
-                title_text="Customer journey &amp; sales bottlenecks",
-                font_size=13, paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)', font_color='#eae7dd',
-                font_family='IBM Plex Mono, monospace', height=600,
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.error("Plotly is required to render the interactive graph.")
-
-    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════
-#  PAGE: Performance Overview
+#  PAGE: Performance Overview (consolidated — no redundancy)
 # ══════════════════════════════════════════════════════════
 elif page == "Performance Overview":
     from datetime import timedelta
@@ -1249,8 +1243,9 @@ elif page == "Performance Overview":
                 handled_leads.add(lid)
     recovery_rate = (len(handled_leads) / missed_total * 100) if missed_total > 0 else 0
     leads_saved = len(handled_leads)
+    pending = max(0, missed_total - auto_reply_count - recovered)
 
-    # KPI Cards
+    # ── KPI Cards (single row — no duplication) ─────────────
     st.markdown(f"""
     <div class="bd-tile-row">
         <div class="bd-tile rust bd-in-1">
@@ -1258,21 +1253,21 @@ elif page == "Performance Overview":
             <div class="bd-tile-label">Missed detected</div>
         </div>
         <div class="bd-tile teal bd-in-2">
-            <div class="bd-tile-value">{auto_reply_count}</div>
-            <div class="bd-tile-label">Auto follow-ups</div>
+            <div class="bd-tile-value">{leads_saved}</div>
+            <div class="bd-tile-label">Leads recovered</div>
         </div>
         <div class="bd-tile bd-in-3">
             <div class="bd-tile-value">{recovery_rate:.0f}%</div>
             <div class="bd-tile-label">Recovery rate</div>
         </div>
-        <div class="bd-tile teal bd-in-4">
-            <div class="bd-tile-value">{leads_saved}</div>
-            <div class="bd-tile-label">Leads saved</div>
+        <div class="bd-tile amber bd-in-4">
+            <div class="bd-tile-value">{pending}</div>
+            <div class="bd-tile-label">Still pending</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # This Week vs Last Week
+    # ── This Week vs Last Week (one chart only) ─────────────
     st.markdown("<div class='bd-card'>", unsafe_allow_html=True)
     st.markdown("<p class='bd-card-title'>This week vs last week</p>", unsafe_allow_html=True)
 
@@ -1305,7 +1300,7 @@ elif page == "Performance Overview":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # 4-Week Trend
+    # ── 4-Week Trend (single consolidated chart) ────────────
     st.markdown("<div class='bd-card'>", unsafe_allow_html=True)
     st.markdown("<p class='bd-card-title'>4-week trend</p>", unsafe_allow_html=True)
     st.markdown("<p style='color:var(--ink-dim); margin-top:-0.5rem;'>Missed leads over the past 4 weeks to spot patterns.</p>", unsafe_allow_html=True)
@@ -1353,49 +1348,7 @@ elif page == "Performance Overview":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Leads Saved: Before vs After
-    st.markdown("<div class='bd-card'>", unsafe_allow_html=True)
-    st.markdown("<p class='bd-card-title'>Estimated leads saved</p>", unsafe_allow_html=True)
-
-    saved_col1, saved_col2 = st.columns(2)
-    with saved_col1:
-        st.markdown(f"""
-        <div style="background: var(--flap-rust-dim); border:1px solid rgba(201,80,63,0.2); border-radius:var(--radius-md); padding:1.2rem; text-align:center;">
-            <div style="font-size:0.68rem; color:var(--flap-rust); text-transform:uppercase; letter-spacing:0.08em; font-weight:600; margin-bottom:0.5rem; font-family:'IBM Plex Mono',monospace;">Without system</div>
-            <div style="font-size:2.3rem; font-weight:700; color:var(--flap-rust); font-family:'IBM Plex Mono',monospace;">{missed_total}</div>
-            <div style="font-size:0.8rem; color:var(--ink-dim); margin-top:0.25rem;">leads would have been lost</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with saved_col2:
-        st.markdown(f"""
-        <div style="background: var(--flap-teal-dim); border:1px solid rgba(79,156,143,0.2); border-radius:var(--radius-md); padding:1.2rem; text-align:center;">
-            <div style="font-size:0.68rem; color:var(--flap-teal); text-transform:uppercase; letter-spacing:0.08em; font-weight:600; margin-bottom:0.5rem; font-family:'IBM Plex Mono',monospace;">With system</div>
-            <div style="font-size:2.3rem; font-weight:700; color:var(--flap-teal); font-family:'IBM Plex Mono',monospace;">{leads_saved}</div>
-            <div style="font-size:0.8rem; color:var(--ink-dim); margin-top:0.25rem;">leads recovered via auto-reply</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    if HAS_PLOTLY and missed_total > 0:
-        fig = go.Figure(data=[
-            go.Bar(name='Without system', x=['Leads'], y=[missed_total], marker_color='#c9503f'),
-            go.Bar(name='Recovered', x=['Leads'], y=[leads_saved], marker_color='#4f9c8f'),
-        ])
-        fig.update_layout(
-            barmode='group', title='Leads lost vs leads recovered',
-            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-            font_color='#8b8f99', font_family='IBM Plex Mono, monospace', showlegend=True,
-            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
-            margin=dict(l=40, r=40, t=40, b=40),
-            yaxis=dict(showgrid=True, gridcolor='#2c303a'),
-            xaxis=dict(showgrid=False),
-        )
-        st.plotly_chart(fig, use_container_width=True)
-    elif missed_total == 0:
-        st.info("No missed leads yet.")
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # Recovery Details
+    # ── Recovery Details (concise — no gauge, no bar chart) ─
     st.markdown("<div class='bd-card'>", unsafe_allow_html=True)
     st.markdown("<p class='bd-card-title'>Recovery breakdown</p>", unsafe_allow_html=True)
 
@@ -1408,35 +1361,9 @@ elif page == "Performance Overview":
             human_pct = (recovered / missed_total * 100) if missed_total > 0 else 0
             st.metric(label="Human follow-up", value=recovered, delta=f"{human_pct:.0f}% of missed")
         with detail_col3:
-            pending = max(0, missed_total - auto_reply_count - recovered)
             st.metric(label="Still pending", value=pending,
                       delta="Needs attention" if pending > 0 else "All handled",
                       delta_color="inverse" if pending > 0 else "normal")
-
-        if HAS_PLOTLY:
-            fig = go.Figure(go.Indicator(
-                mode="gauge+number+delta",
-                value=recovery_rate,
-                title={"text": "Recovery rate (%)", "font": {"color": "#eae7dd", "family": "IBM Plex Mono, monospace"}},
-                number={"suffix": "%", "font": {"color": "#eae7dd", "family": "IBM Plex Mono, monospace"}},
-                gauge={
-                    "axis": {"range": [0, 100], "tickcolor": "#8b8f99"},
-                    "bar": {"color": "#4f9c8f"},
-                    "bgcolor": "#1c1f26",
-                    "steps": [
-                        {"range": [0, 50], "color": "rgba(201,80,63,0.12)"},
-                        {"range": [50, 80], "color": "rgba(232,163,61,0.12)"},
-                        {"range": [80, 100], "color": "rgba(79,156,143,0.12)"},
-                    ],
-                    "threshold": {"line": {"color": "#e8a33d", "width": 3}, "thickness": 0.8, "value": recovery_rate},
-                },
-            ))
-            fig.update_layout(
-                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                font_color='#8b8f99', height=300,
-                margin=dict(l=40, r=40, t=40, b=40),
-            )
-            st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("No missed leads to analyze yet.")
 
